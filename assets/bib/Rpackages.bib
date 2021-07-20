@@ -1,0 +1,264 @@
+
+@article{emerson_r_nodate,
+	title = {The {R} {Package} bigmemory: {Supporting} {Efficient} {Computation} and {Concurrent} {Programming} with {Large} {Data} {Sets}.},
+	abstract = {Multi-gigabyte data sets challenge and frustrate R users even on well-equipped hardware. C/C++ and Fortran programming can be helpful, but is cumbersome for interactive data analysis and lacks the flexibility and power of R{\textquoteright}s rich statistical programming environment. The new package bigmemory bridges this gap, implementing massive matrices in memory (managed in R but implemented in C++) and supporting their basic manipulation and exploration. It is ideal for problems involving the analysis in R of manageable subsets of the data, or when an analysis is conducted mostly in C++. In a Unix environment, the data structure may be allocated to shared memory with transparent read and write locking, allowing separate processes on the same computer to share access to a single copy of the data set. This opens the door for more powerful parallel analyses and data mining of massive data sets.},
+	language = {en},
+	journal = {Journal of Statistical Software},
+	author = {Emerson, John W and Kane, Michael J},
+	pages = {16},
+	file = {Emerson and Kane - The R Package bigmemory Supporting Efficient Comput.pdf:files/184/Emerson and Kane - The R Package bigmemory Supporting Efficient Comput.pdf:application/pdf}
+}
+
+@misc{xie_dt_2020,
+	title = {{DT}: {A} {Wrapper} of the {JavaScript} {Library} '{DataTables}'},
+	copyright = {GPL-3 {\textbar} file LICENSE},
+	shorttitle = {{DT}},
+	url = {https://CRAN.R-project.org/package=DT},
+	abstract = {Data objects in R can be rendered as HTML tables using the JavaScript library 'DataTables' (typically via R Markdown or Shiny). The 'DataTables' library has been included in this R package. The package name 'DT' is an abbreviation of 'DataTables'.},
+	urldate = {2020-04-30},
+	author = {Xie, Yihui and Cheng, Joe and Tan, Xianying and Allaire, J. J. and Girlich, Maximilian and Ellis, Greg Freedman and Rauh, Johannes and htmlwidgets/lib), jQuery contributors (jQuery in and htmlwidgets/lib), SpryMedia Limited (DataTables in and htmlwidgets/lib), Brian Reavis (selectize js in and htmlwidgets/lib), Leon Gersen (noUiSlider in and htmlwidgets/lib), Bartek Szopka (jquery highlight js in and RStudio and PBC},
+	month = mar,
+	year = {2020},
+	keywords = {ReproducibleResearch}
+}
+
+@misc{wickham_dplyr_2020,
+	title = {dplyr: {A} {Grammar} of {Data} {Manipulation}},
+	copyright = {MIT + file LICENSE},
+	shorttitle = {dplyr},
+	url = {https://CRAN.R-project.org/package=dplyr},
+	abstract = {A fast, consistent tool for working with data frame like objects, both in memory and out of memory.},
+	urldate = {2020-04-30},
+	author = {Wickham, Hadley and Fran{\c c}ois, Romain and Henry, Lionel and M{\"u}ller, Kirill and RStudio},
+	month = mar,
+	year = {2020},
+	keywords = {ModelDeployment}
+}
+
+@misc{pebesma_sp_2020,
+	title = {sp: {Classes} and {Methods} for {Spatial} {Data}},
+	copyright = {GPL-2 {\textbar} GPL-3 [expanded from: GPL (>= 2)]},
+	shorttitle = {sp},
+	url = {https://CRAN.R-project.org/package=sp},
+	abstract = {Classes and methods for spatial data; the classes document where the spatial location information resides, for 2D or 3D data. Utility functions are provided, e.g. for plotting data as maps, spatial selection, as well as methods for retrieving coordinates, for subsetting, print, summary, etc.},
+	urldate = {2020-04-30},
+	author = {Pebesma, Edzer and Bivand, Roger and Rowlingson, Barry and Gomez-Rubio, Virgilio and Hijmans, Robert and Sumner, Michael and MacQueen, Don and Lemon, Jim and O'Brien, Josh and O'Rourke, Joseph},
+	month = feb,
+	year = {2020},
+	keywords = {Spatial, SpatioTemporal}
+}
+
+@misc{bivand_rgeos_2019,
+	title = {rgeos: {Interface} to {Geometry} {Engine} - {Open} {Source} ('{GEOS}')},
+	copyright = {GPL-2 {\textbar} GPL-3 [expanded from: GPL (>= 2)]},
+	shorttitle = {rgeos},
+	url = {https://CRAN.R-project.org/package=rgeos},
+	abstract = {Interface to Geometry Engine - Open Source ('GEOS') using the C 'API' for topology operations on geometries. The 'GEOS' library is external to the package, and, when installing the package from source, must be correctly installed first. Windows and Mac Intel OS X binaries are provided on 'CRAN'. ('rgeos' {\textgreater}= 0.5-1): Up to and including 'GEOS' 3.7.1, topological operations succeeded with some invalid geometries for which the same operations fail from and including 'GEOS' 3.7.2. The 'checkValidity=' argument defaults and structure have been changed, from default FALSE to integer default '0L' for 'GEOS' {\textless} 3.7.2 (no check), '1L' 'GEOS' {\textgreater}= 3.7.2 (check and warn). A value of '2L' is also provided that may be used, assigned globally using 'set\_RGEOS\_CheckValidity(2L)', or locally using the 'checkValidity=2L' argument, to attempt zero-width buffer repair if invalid geometries are found. The previous default (FALSE, now '0L') is fastest and used for 'GEOS' {\textless} 3.7.2, but will not warn users of possible problems before the failure of topological operations that previously succeeded.},
+	urldate = {2020-04-30},
+	author = {Bivand, Roger and Rundel, Colin and Pebesma, Edzer and Stuetz, Rainer and Hufthammer, Karl Ove and Giraudoux, Patrick and Davis, Martin and Santilli, Sandro},
+	month = oct,
+	year = {2019},
+	keywords = {Spatial}
+}
+
+@misc{ren_formattable_2016,
+	title = {formattable: {Create} '{Formattable}' {Data} {Structures}},
+	copyright = {MIT + file LICENSE},
+	shorttitle = {formattable},
+	url = {https://CRAN.R-project.org/package=formattable},
+	abstract = {Provides functions to create formattable vectors and data frames. 'Formattable' vectors are printed with text formatting, and formattable data frames are printed with multiple types of formatting in HTML to improve the readability of data presented in tabular form rendered in web pages.},
+	urldate = {2020-04-30},
+	author = {Ren, Kun and Russell, Kenton},
+	month = aug,
+	year = {2016},
+	keywords = {ReproducibleResearch}
+}
+
+@misc{chirico_geohashtools_2019,
+	title = {{geohashTools}: {Tools} for {Working} with {Geohashes}},
+	copyright = {MPL-2.0 {\textbar} file LICENSE},
+	shorttitle = {{geohashTools}},
+	url = {https://CRAN.R-project.org/package=geohashTools},
+	abstract = {Tools for working with Gustavo Niemeyer's geohash coordinate system, including API for interacting with other common R GIS libraries.},
+	urldate = {2020-04-30},
+	author = {Chirico, Michael and Shkolnik, Dmitry},
+	month = oct,
+	year = {2019}
+}
+
+@misc{hijmans_geosphere_2019,
+	title = {geosphere: {Spherical} {Trigonometry}},
+	copyright = {GPL (>= 3)},
+	shorttitle = {geosphere},
+	url = {https://CRAN.R-project.org/package=geosphere},
+	abstract = {Spherical trigonometry for geographic applications. That is, compute distances and related measures for angular (longitude/latitude) locations.},
+	urldate = {2020-04-30},
+	author = {Hijmans, Robert J. and Williams, Ed and Vennes, Chris},
+	month = may,
+	year = {2019},
+	keywords = {Spatial}
+}
+
+@misc{wickham_ggplot2_2020,
+	title = {ggplot2: {Create} {Elegant} {Data} {Visualisations} {Using} the {Grammar} of {Graphics}},
+	copyright = {GPL-2 {\textbar} file LICENSE},
+	shorttitle = {ggplot2},
+	url = {https://CRAN.R-project.org/package=ggplot2},
+	abstract = {A system for 'declaratively' creating graphics, based on "The Grammar of Graphics". You provide the data, tell 'ggplot2' how to map variables to aesthetics, what graphical primitives to use, and it takes care of the details.},
+	urldate = {2020-04-30},
+	author = {Wickham, Hadley and Chang, Winston and Henry, Lionel and Pedersen, Thomas Lin and Takahashi, Kohske and Wilke, Claus and Woo, Kara and Yutani, Hiroaki and Dunnington, Dewey and RStudio},
+	month = mar,
+	year = {2020},
+	keywords = {Graphics, Phylogenetics, TeachingStatistics}
+}
+
+@misc{rstudio_htmltools_2019,
+	title = {htmltools: {Tools} for {HTML}},
+	copyright = {GPL-2 {\textbar} GPL-3 [expanded from: GPL (>= 2)]},
+	shorttitle = {htmltools},
+	url = {https://CRAN.R-project.org/package=htmltools},
+	abstract = {Tools for HTML generation and output.},
+	urldate = {2020-04-30},
+	author = {RStudio and Inc},
+	month = oct,
+	year = {2019},
+	keywords = {ReproducibleResearch, WebTechnologies}
+}
+
+@misc{vaidyanathan_htmlwidgets_2019,
+	title = {htmlwidgets: {HTML} {Widgets} for {R}},
+	copyright = {MIT + file LICENSE},
+	shorttitle = {htmlwidgets},
+	url = {https://CRAN.R-project.org/package=htmlwidgets},
+	abstract = {A framework for creating HTML widgets that render in various contexts including the R console, 'R Markdown' documents, and 'Shiny' web applications.},
+	urldate = {2020-04-30},
+	author = {Vaidyanathan, Ramnath and Xie, Yihui and Allaire, J. J. and Cheng, Joe and Russell, Kenton and RStudio},
+	month = oct,
+	year = {2019}
+}
+
+@misc{appelhans_leafem_2020,
+	title = {leafem: 'leaflet' {Extensions} for 'mapview'},
+	copyright = {MIT + file LICENSE},
+	shorttitle = {leafem},
+	url = {https://CRAN.R-project.org/package=leafem},
+	abstract = {Provides extensions for packages 'leaflet' \& 'mapdeck', many of which are used by package 'mapview'. Focus is on functionality readily available in Geographic Information Systems such as 'Quantum GIS'. Includes functions to display coordinates of mouse pointer position, query image values via mouse pointer and zoom-to-layer buttons. Additionally, provides a feature type agnostic function to add points, lines, polygons to a map.},
+	urldate = {2020-04-30},
+	author = {Appelhans, Tim and Reudenbach, Christoph and Russell, Kenton and Darley, Jochen and plugin), Daniel Montague (Leaflet EasyButton and Busetto, Lorenzo and Ranghetti, Luigi and McBain, Miles and Gatscha, Sebastian},
+	month = apr,
+	year = {2020}
+}
+
+@misc{karambelkar_leafletextras_2018,
+	title = {leaflet.extras: {Extra} {Functionality} for 'leaflet' {Package}},
+	copyright = {GPL-3 {\textbar} file LICENSE},
+	shorttitle = {leaflet.extras},
+	url = {https://CRAN.R-project.org/package=leaflet.extras},
+	abstract = {The 'leaflet' JavaScript library provides many plugins some of which are available in the core 'leaflet' package, but there are many more. It is not possible to support them all in the core 'leaflet' package. This package serves as an add-on to the 'leaflet' package by providing extra functionality via 'leaflet' plugins.},
+	urldate = {2020-04-30},
+	author = {Karambelkar, Bhaskar and Schloerke, Barret and integration), Bangyou Zheng (Leaflet-search {and} Leaflet-GPS plugin and Options), Robin Cura (Fixes for Draw and Options), Markus Voge (Enhancements for Draw and addition), Markus Dumke (Bounce Marker and Mapbox (leaflet-omnivore and csv2geojson and libraries), {and} togeojson and library), Henry Thasler (Leaflet Geodesic and library), Dennis Wilhelm (Leaflet StyleEditor and library), Kirollos Risk (fuse js and library), Tim Wisniewski (leaflet-choropleth and library), Leaflet (leaflet-draw and library), Alexander Milevski (leaflet-draw-drag and library), John Firebaugh (leaflet-fullscreen and library), Stefano Cudini (leaflet-gps and library), Johannes Rudolph (leaflet-hash and library), Per Liedman (leaflet-measure-path and library), Pavel Shramov (leaflet-plugins and library), Filip Zavadil (leaflet-pulse-icon and library), Stefano Cudini (leaflet-search and library), CliffCloud (leaflet-sleep and library), Ursudio (leaflet-webgl-heatmap and library), Maxime Hadjinlian (leaflet BounceMarker and library), Vladimir Agafonkin (leaflet heat and library), Iv{\'a}n S{\'a}nchez Ortega (leaflet tilelayer pouchdbcached and library), Dale Harvey (pouchdb-browser and library), Mike Bostock (topojson},
+	month = apr,
+	year = {2018}
+}
+
+@misc{cheng_leaflet_2019,
+	title = {leaflet: {Create} {Interactive} {Web} {Maps} with the {JavaScript} '{Leaflet}' {Library}},
+	copyright = {GPL-3},
+	shorttitle = {leaflet},
+	url = {https://CRAN.R-project.org/package=leaflet},
+	abstract = {Create and customize interactive maps using the 'Leaflet' JavaScript library and the 'htmlwidgets' package. These maps can be used directly from the R console, from 'RStudio', in Shiny applications and R Markdown documents.},
+	urldate = {2020-04-30},
+	author = {Cheng, Joe and Karambelkar, Bhaskar and Xie, Yihui and Wickham, Hadley and Russell, Kenton and Johnson, Kent and Schloerke, Barret and library), jQuery Foundation {and} contributors (jQuery and library), Vladimir Agafonkin (Leaflet and library), CloudMade (Leaflet and library), Leaflet contributors (Leaflet and plugin), Brandon Copeland (leaflet-measure and plugin), Joerg Dietrich (Leaflet Terminator and plugin), Benjamin Becquet (Leaflet MagnifyingGlass and plugin), Norkart AS (Leaflet MiniMap and plugin), L. Voogdt (Leaflet awesome-markers and plugin), Daniel Montague (Leaflet EasyButton and plugin), Kartena AB (Proj4Leaflet and plugin), Robert Kajic (leaflet-locationfilter and plugin), Mapbox (leaflet-omnivore and Bostock  (topojson), Michael and RStudio},
+	month = nov,
+	year = {2019},
+	keywords = {Spatial}
+}
+
+@misc{appelhans_leafpop_2019,
+	title = {leafpop: {Include} {Tables}, {Images} and {Graphs} in {Leaflet} {Pop}-{Ups}},
+	copyright = {MIT + file LICENSE},
+	shorttitle = {leafpop},
+	url = {https://CRAN.R-project.org/package=leafpop},
+	abstract = {Creates 'HTML' strings to embed tables, images or graphs in pop-ups of interactive maps created with packages like 'leaflet' or 'mapview'. Handles local images located on the file system or via remote URL. Handles graphs created with 'lattice' or 'ggplot2' as well as interactive plots created with 'htmlwidgets'.},
+	urldate = {2020-04-30},
+	author = {Appelhans, Tim and Detsch, Florian},
+	month = dec,
+	year = {2019}
+}
+
+@misc{spinu_lubridate_2020,
+	title = {lubridate: {Make} {Dealing} with {Dates} a {Little} {Easier}},
+	copyright = {GPL-2 {\textbar} GPL-3 [expanded from: GPL (>= 2)]},
+	shorttitle = {lubridate},
+	url = {https://CRAN.R-project.org/package=lubridate},
+	abstract = {Functions to work with date-times and time-spans: fast and user friendly parsing of date-time data, extraction and updating of components of a date-time (years, months, days, hours, minutes, and seconds), algebraic manipulation on date-time and time-span objects. The 'lubridate' package has a consistent and memorable syntax that makes working with dates easy and fun. Parts of the 'CCTZ' source code, released under the Apache 2.0 License, are included in this package. See {\textless}https://github.com/google/cctz{\textgreater} for more details.},
+	urldate = {2020-04-30},
+	author = {Spinu, Vitalie and Grolemund, Garrett and Wickham, Hadley and Lyttle, Ian and Constigan, Imanuel and Law, Jason and Mitarotonda, Doug and Larmarange, Joseph and Boiser, Jonathan and Lee, Chel Hee},
+	month = apr,
+	year = {2020},
+	keywords = {ReproducibleResearch, TimeSeries}
+}
+
+@misc{sievert_plotly_2020,
+	title = {plotly: {Create} {Interactive} {Web} {Graphics} via 'plotly.js'},
+	copyright = {MIT + file LICENSE},
+	shorttitle = {plotly},
+	url = {https://CRAN.R-project.org/package=plotly},
+	abstract = {Create interactive web graphics from 'ggplot2' graphs and/or a custom interface to the (MIT-licensed) JavaScript library 'plotly.js' inspired by the grammar of graphics.},
+	urldate = {2020-04-30},
+	author = {Sievert, Carson and Parmer, Chris and Hocking, Toby and Chamberlain, Scott and Ram, Karthik and Corvellec, Marianne and Despouy, Pedro and Inc, Plotly Technologies},
+	month = apr,
+	year = {2020},
+	keywords = {WebTechnologies}
+}
+
+@misc{bengtsson_rutils_2019,
+	title = {R.utils: {Various} {Programming} {Utilities}},
+	copyright = {LGPL-2.1 {\textbar} LGPL-3 [expanded from: LGPL (>= 2.1)]},
+	shorttitle = {R.utils},
+	url = {https://CRAN.R-project.org/package=R.utils},
+	abstract = {Utility functions useful when programming and developing R packages.},
+	urldate = {2020-04-30},
+	author = {Bengtsson, Henrik},
+	month = dec,
+	year = {2019}
+}
+
+@misc{ushey_reticulate_2020,
+	title = {reticulate: {Interface} to '{Python}'},
+	copyright = {Apache License 2.0},
+	shorttitle = {reticulate},
+	url = {https://CRAN.R-project.org/package=reticulate},
+	abstract = {Interface to 'Python' modules, classes, and functions. When calling into 'Python', R data types are automatically converted to their equivalent 'Python' types. When values are returned from 'Python' to R they are converted back to R types. Compatible with all versions of 'Python' {\textgreater}= 2.7.},
+	urldate = {2020-04-30},
+	author = {Ushey, Kevin and Allaire, J. J. and RStudio and Tang  [aut, Yuan and cph and Eddelbuettel, Dirk and Lewis, Bryan and Keydana, Sigrid and Hafen, Ryan and library, Marcus Geelnard (TinyThread and http://tinythreadpp.bitsnbites.eu/)},
+	month = apr,
+	year = {2020},
+	keywords = {HighPerformanceComputing, ModelDeployment, NumericalMathematics}
+}
+
+@misc{bivand_rgdal_2019,
+	title = {rgdal: {Bindings} for the '{Geospatial}' {Data} {Abstraction} {Library}},
+	copyright = {GPL-2 {\textbar} GPL-3 [expanded from: GPL (>= 2)]},
+	shorttitle = {rgdal},
+	url = {https://CRAN.R-project.org/package=rgdal},
+	abstract = {Provides bindings to the 'Geospatial' Data Abstraction Library ('GDAL') ({\textgreater}= 1.11.4) and access to projection/transformation operations from the 'PROJ.4' library. The 'GDAL' and 'PROJ.4' libraries are external to the package, and, when installing the package from source, must be correctly installed first. From 'rgdal' 1.4.1, provision is made for 'PROJ6' accommodation, with 'PROJ6' functionality to follow; from 1.4.1 'rgdal' will build and function when 'PROJ' {\textgreater}= 6. Both 'GDAL' raster and 'OGR' vector map data can be imported into R, and 'GDAL' raster data and 'OGR' vector data exported. Use is made of classes defined in the 'sp' package. Windows and Mac Intel OS X binaries (including 'GDAL', 'PROJ.4' and 'Expat') are provided on 'CRAN'.},
+	urldate = {2020-04-30},
+	author = {Bivand, Roger and Keitt, Tim and Rowlingson, Barry and Pebesma, Edzer and Sumner, Michael and Hijmans, Robert and Rouault, Even and Warmerdam, Frank and Ooms, Jeroen and Rundel, Colin},
+	month = nov,
+	year = {2019},
+	keywords = {Spatial}
+}
+
+@misc{dowle_datatable_2019,
+	title = {data.table: {Extension} of 'data.frame'},
+	copyright = {MPL-2.0 {\textbar} file LICENSE},
+	shorttitle = {data.table},
+	url = {https://CRAN.R-project.org/package=data.table},
+	abstract = {Fast aggregation of large data (e.g. 100GB in RAM), fast ordered joins, fast add/modify/delete of columns by group using no copies at all, list columns, friendly and fast character-separated-value read/write. Offers a natural and flexible syntax, for faster development.},
+	urldate = {2020-04-30},
+	author = {Dowle, Matt and Srinivasan, Arun and Gorecki, Jan and Chirico, Michael and Stetsenko, Pasha and Short, Tom and Lianoglou, Steve and Antonyan, Eduard and Bonsch, Markus and Parsonage, Hugh and Ritchie, Scott and Ren, Kun and Tan, Xianying and Saporta, Rick and Seiskari, Otto and Dong, Xianghui and Lang, Michel and Iwasaki, Watal and Wenchel, Seth and Broman, Karl and Schmidt, Tobias and Arenburg, David and Smith, Ethan and Cocquemas, Francois and Gomez, Matthieu and Chataignon, Philippe and Groves, Declan and Possenriede, Daniel and Parages, Felipe and Toth, Denes and Yaramaz-David, Mus and Perumal, Ayappan and Sams, James and Morgan, Martin and Quinn, Michael and @javrucebo and @marc-outins and Storey, Roy and Saraswat, Manish and Jacob, Morgan and Schubmehl, Michael and Vaughan, Davis},
+	month = dec,
+	year = {2019},
+	keywords = {Finance, HighPerformanceComputing, TimeSeries}
+}
