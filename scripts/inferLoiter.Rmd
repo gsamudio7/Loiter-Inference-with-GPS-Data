@@ -54,6 +54,7 @@ library(rgeos)
 library(rgdal)
 library(geosphere)
 library(geohashTools)
+library(geodist)
 library(htmltools)
 library(leaflet)
 library(leaflet.extras)
@@ -64,9 +65,12 @@ library(lubridate)
 library(plotly)
 library(ggplot2)
 library(htmlwidgets)
-library(reticulate)
 library(formattable)
 library(utils)
+library(reticulate)
+library(base64enc)
+library(h3)
+use_python("/Users/developer/opt/anaconda3/bin/python", required=TRUE)
 use_python("/Users/developer/opt/anaconda3/bin/python", required=TRUE)
 source_python("supportFunctions.py")
 ```
@@ -105,7 +109,7 @@ resetMap <- function(map) {
 baseMap <- function(centerLat=55,
                     centerLon=-105,
                     initZoom=4,
-                    logoLocation="https://raw.githubusercontent.com/gsamudio7/Loiter-Inference-with-GPS-Data/main/assets/images/NGATitle.png?token=AU33X6Q72Z4XHYEESDMYBJDA7GH3I",
+                    logoLocation="https://github.com/gsamudio7/Loiter-Inference-with-GPS-Data/blob/main/assets/images/NGATitle.png?raw=true",
                     logoWidth=350,logoHeight=60,
                     gitRepo="https://github.com/gsamudio7/Loiter-Inference-with-GPS-Data",
                     gitRepoTitle="Loiter Inference with GPS Data",
@@ -140,9 +144,18 @@ baseMap <- function(centerLat=55,
         baseGroups = c("NGA Slate","NGA Imagery"),
         overlayGroups = overGroups,
         options = layersControlOptions(collapsed = FALSE)) %>%
-      hideGroup(c("NGA Imagery",groups2hide)) 
-  )
-}
+      hideGroup(c("NGA Imagery",groups2hide)) %>%
+      
+      addControl(
+        className=NULL,
+        html=
+          "<style>
+          .leaflet-control-layers-expanded {
+              padding: 6px 10px 6px 6px;
+              color: #fff;
+              background: #333;
+          </style>")
+  )}
 
 plotGeohash <- function(map,pts,geohashPrecision,groupName,colPal) {
   

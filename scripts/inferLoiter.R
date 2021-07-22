@@ -25,6 +25,7 @@ library(formattable)
 library(utils)
 library(reticulate)
 library(base64enc)
+library(h3)
 use_python("/Users/developer/opt/anaconda3/bin/python", required=TRUE)
 
 
@@ -60,7 +61,7 @@ resetMap <- function(map) {
 baseMap <- function(centerLat=55,
                     centerLon=-105,
                     initZoom=4,
-                    logoLocation="https://raw.githubusercontent.com/gsamudio7/Loiter-Inference-with-GPS-Data/main/assets/images/NGATitle.png?token=AU33X6Q72Z4XHYEESDMYBJDA7GH3I",
+                    logoLocation="https://github.com/gsamudio7/Loiter-Inference-with-GPS-Data/blob/main/assets/images/NGATitle.png?raw=true",
                     logoWidth=350,logoHeight=60,
                     gitRepo="https://github.com/gsamudio7/Loiter-Inference-with-GPS-Data",
                     gitRepoTitle="Loiter Inference with GPS Data",
@@ -95,48 +96,68 @@ baseMap <- function(centerLat=55,
         baseGroups = c("NGA Slate","NGA Imagery"),
         overlayGroups = overGroups,
         options = layersControlOptions(collapsed = FALSE)) %>%
-      hideGroup(c("NGA Imagery",groups2hide)) 
-  )
+      hideGroup(c("NGA Imagery",groups2hide)) %>%
+      
+      addControl(
+        className=NULL,
+        html=
+          "<style>
+          .leaflet-control-layers-expanded {
+              padding: 6px 10px 6px 6px;
+              color: #fff;
+              background: #333;
+          </style>")
+  )}
+
+
+
+
+# Screw geohash --> Use hexbins!
+hexFrame_2_sf = function(hexFrame) {
+  bdry = h3_to_geo_boundary_sf(hexFrame$H3)
+  return(st_as_sf(hexFrame, bdry$geometry))
 }
 
-plotGeohash <- function(map,pts,geohashPrecision,groupName,colPal) {
+plotH3 <- function(map,pts,h3Resolution,groupName,colPal) {
   
-  # Set geohash column
-  pts[,"gh" := gh_encode(lat,lon,precision=geohashPrecision)]
+  # Set H3 column
+  pts[,"H3" := geo_to_h3(pts[,c("lat","lon")],res=h3Resolution)]
   
   # Set count data.table
-  cdt <- pts[,.(count=.N),by=gh]
+  cdt <- pts[,.(count=.N),by=H3]
   m <- sum(cdt[,count])
   
   # Set color palette
   pal <- colorNumeric(palette=colPal,reverse=TRUE,
                       domain=log10(cdt[,count]))
   
-  # Plot every cluster
-  for (h in cdt[,unique(gh)]) {
-    
-    # Get rectangle info
-    recList <- gh_decode(h, include_delta = TRUE)
-    
-    map <- map %>%
-      addRectangles(lng1=recList$longitude - recList$delta_longitude,
-                    lng2=recList$longitude + recList$delta_longitude,
-                    lat1=recList$latitude - recList$delta_latitude,
-                    lat2=recList$latitude + recList$delta_latitude,
-                    weight=1,opacity=1, fillOpacity=1,
-                    color = cdt[gh==h,count] %>% log10() %>% pal(),
-                    group = groupName
-      )
-    
-  } 
-  map <- map %>% addLegend(position="bottomright",
-                           group=groupName,
-                           pal=pal,opacity=1,
-                           values=log10(cdt[,count]),
-                           labFormat=labelFormat(transform = function(x) {10^x %>% round()}),
-                           title="<b>Obs Count</b>") %>% 
-    clearBounds()
-  return(map)
+  # Make sf object
+  hexFrame <- hexFrame_2_sf(cdt)
+  
+  # Map it
+  return(map %>% 
+           addPolygons(
+              data=hexFrame,
+              color=~count %>% log10() %>% pal(),
+              weight=0.5,opacity=1, fillOpacity=0.35,
+              highlight = highlightOptions(
+                weight = 1,
+                color="white",
+                fillOpacity = 0.7,
+                bringToFront = TRUE),
+              #label=labels,
+              group = groupName
+          ) %>% 
+           addLegend(position="bottomright",
+                     group=groupName,
+                     pal=pal,opacity=1,
+                     values=log10(cdt[,count]),
+                     labFormat=labelFormat(transform = function(x) {10^x %>% round()}),
+                     title="<b>Obs Count</b>") %>%
+           
+           clearBounds()
+  )
+  
 }
 
 # Get the data
@@ -162,13 +183,26 @@ setnames(data,
 wolf.of.Interest <- data[,.(count=.N),by="cid"][count==max(count)]$cid  
 dt <- data[cid==wolf.of.Interest]
 
-# Plot geohash density map of wolf population and wolf of interest
-baseMap(overGroups=c("All Wolves","Wolf of Interest")) %>% 
+# Plot H3 density map of wolf population and wolf of interest
+baseMap(overGroups=c("Wolf Population","Wolf of Interest")) %>% 
   
+  plotH3(pts=data[,c("lon","lat")],
+         h3Resolution=8,
+         groupName="Wolf Population",
+         colPal="Reds") %>%
+  
+  plotH3(pts=dt[,c("lon","lat")],
+         h3Resolution=8,
+         groupName="Wolf of Interest",
+         colPal="Blues")
+  
+
+
   plotGeohash(pts = data[,c("lon","lat")],
               geohashPrecision = 6,
               groupName = "All Wolves",
               colPal="Reds") %>%
+  
   plotGeohash(pts = dt[,c("lon","lat")],
               geohashPrecision = 6,
               groupName = "Wolf of Interest",
