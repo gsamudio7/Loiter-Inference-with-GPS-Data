@@ -67,8 +67,7 @@ library(htmlwidgets)
 library(reticulate)
 library(formattable)
 library(utils)
-#pythonLocation <- readline(prompt = "Input python path (in terminal execute: which python) ")
-use_python("/opt/anaconda3/bin/python")
+use_python("/Users/developer/opt/anaconda3/bin/python", required=TRUE)
 source_python("supportFunctions.py")
 ```
 
@@ -103,41 +102,45 @@ resetMap <- function(map) {
     )
 }
 
-baseMap <- function(groups2hide=NULL,overGroups=NULL) {
-    
+baseMap <- function(centerLat=55,
+                    centerLon=-105,
+                    initZoom=4,
+                    logoLocation="https://raw.githubusercontent.com/gsamudio7/Loiter-Inference-with-GPS-Data/main/assets/images/NGATitle.png?token=AU33X6Q72Z4XHYEESDMYBJDA7GH3I",
+                    logoWidth=350,logoHeight=60,
+                    gitRepo="https://github.com/gsamudio7/Loiter-Inference-with-GPS-Data",
+                    gitRepoTitle="Loiter Inference with GPS Data",
+                    groups2hide=NULL,
+                    overGroups=NULL) {
   return(
     leaflet() %>% 
-    addProviderTiles(
-      group="World Imagery",
-      provider=providers$Esri.WorldImagery,
-      options=tileOptions(
-        attribution=toString(tags$a(href = paste0("https://gitlab.master.forcenex.us/gap/skope"),
-                                                  "Skope Insights & Analytics")))) %>%
-    addProviderTiles(
-      provider=providers$CartoDB.DarkMatter,
-      group="Dark Matter",
-      options=tileOptions(
-        attribution=toString(tags$a(href = paste0("https://gitlab.master.forcenex.us/gap/skope"),
-                                                  "Skope Insights & Analytics")))) %>%
-    addLogo(img="https://gitlab.master.forcenex.us/gap/skope/team-3/team-3-projects/loiter-inference/raw/master/assets/images/NGATitle.png",
-            width=300,height=60,url="https://gitlab.master.forcenex.us/gap/skope") %>%
-    leaflet.extras::addMeasurePathToolbar() %>%
-    resetMap() %>%
-    addMeasure(
-      position = "topleft",
-      primaryLengthUnit = "meters",
-      primaryAreaUnit = "sqmeters") %>%
-    addMiniMap(
-      tiles='Esri.WorldImagery',
-      zoomLevelOffset = -10,
-      toggleDisplay = TRUE, 
-      position="bottomleft") %>%
-    addFullscreenControl() %>%
-    addLayersControl(
-      baseGroups = c("Dark Matter","World Imagery"),
-      overlayGroups = overGroups,
-      options = layersControlOptions(collapsed = FALSE)) %>%
-    hideGroup(c("World Imagery",groups2hide))
+      addProviderTiles(
+        group="NGA Imagery",
+        provider=providers$Esri.WorldImagery,
+        options=tileOptions(
+          attribution=toString(tags$a(href = paste0(gitRepo),
+                                      gitRepoTitle)))) %>%
+      addProviderTiles(
+        provider=providers$CartoDB.DarkMatter,
+        group="NGA Slate",
+        options=tileOptions(
+          attribution=toString(tags$a(href = paste0(gitRepo),
+                                      gitRepoTitle)))) %>%
+      addLogo(img=logoLocation,
+              width=logoWidth,height=logoHeight,url=gitRepo) %>%
+      resetMap() %>%
+      addMouseCoordinates() %>%
+      setView(lng=centerLon,lat=centerLat,zoom=initZoom) %>%
+      addMiniMap(
+        tiles='Esri.WorldImagery',
+        zoomLevelOffset = -10,
+        toggleDisplay = TRUE, 
+        position="bottomleft") %>%
+      addFullscreenControl() %>%
+      addLayersControl(
+        baseGroups = c("NGA Slate","NGA Imagery"),
+        overlayGroups = overGroups,
+        options = layersControlOptions(collapsed = FALSE)) %>%
+      hideGroup(c("NGA Imagery",groups2hide)) 
   )
 }
 

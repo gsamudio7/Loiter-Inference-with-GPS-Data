@@ -10,6 +10,7 @@ library(rgeos)
 library(rgdal)
 library(geosphere)
 library(geohashTools)
+library(geodist)
 library(htmltools)
 library(leaflet)
 library(leaflet.extras)
@@ -23,17 +24,163 @@ library(htmlwidgets)
 library(formattable)
 library(utils)
 library(reticulate)
+library(base64enc)
 use_python("/Users/developer/opt/anaconda3/bin/python", required=TRUE)
 
 
 source_python("scripts/pythonSupport.py")
+
+# First chunk testing ####
+resetMap <- function(map) {
+  # Reference https://github.com/rstudio/leaflet/issues/623
+  map %>%
+    addEasyButton(
+      easyButton(
+        icon = "ion-arrow-shrink", 
+        title = "Reset View", 
+        onClick = JS(
+          "function(btn, map){ map.setView(map._initialCenter, map._initialZoom); }"
+        )
+      )
+    ) %>% 
+    htmlwidgets::onRender(
+      JS(
+        "
+          function(el, x){ 
+            var map = this; 
+            map.whenReady(function(){
+              map._initialCenter = map.getCenter(); 
+              map._initialZoom = map.getZoom();
+            });
+          }"
+      )
+    )
+}
+
+baseMap <- function(centerLat=55,
+                    centerLon=-105,
+                    initZoom=4,
+                    logoLocation="https://raw.githubusercontent.com/gsamudio7/Loiter-Inference-with-GPS-Data/main/assets/images/NGATitle.png?token=AU33X6Q72Z4XHYEESDMYBJDA7GH3I",
+                    logoWidth=350,logoHeight=60,
+                    gitRepo="https://github.com/gsamudio7/Loiter-Inference-with-GPS-Data",
+                    gitRepoTitle="Loiter Inference with GPS Data",
+                    groups2hide=NULL,
+                    overGroups=NULL) {
+  return(
+    leaflet() %>% 
+      addProviderTiles(
+        group="NGA Imagery",
+        provider=providers$Esri.WorldImagery,
+        options=tileOptions(
+          attribution=toString(tags$a(href = paste0(gitRepo),
+                                      gitRepoTitle)))) %>%
+      addProviderTiles(
+        provider=providers$CartoDB.DarkMatter,
+        group="NGA Slate",
+        options=tileOptions(
+          attribution=toString(tags$a(href = paste0(gitRepo),
+                                      gitRepoTitle)))) %>%
+      addLogo(img=logoLocation,
+              width=logoWidth,height=logoHeight,url=gitRepo) %>%
+      resetMap() %>%
+      addMouseCoordinates() %>%
+      setView(lng=centerLon,lat=centerLat,zoom=initZoom) %>%
+      addMiniMap(
+        tiles='Esri.WorldImagery',
+        zoomLevelOffset = -10,
+        toggleDisplay = TRUE, 
+        position="bottomleft") %>%
+      addFullscreenControl() %>%
+      addLayersControl(
+        baseGroups = c("NGA Slate","NGA Imagery"),
+        overlayGroups = overGroups,
+        options = layersControlOptions(collapsed = FALSE)) %>%
+      hideGroup(c("NGA Imagery",groups2hide)) 
+  )
+}
+
+plotGeohash <- function(map,pts,geohashPrecision,groupName,colPal) {
+  
+  # Set geohash column
+  pts[,"gh" := gh_encode(lat,lon,precision=geohashPrecision)]
+  
+  # Set count data.table
+  cdt <- pts[,.(count=.N),by=gh]
+  m <- sum(cdt[,count])
+  
+  # Set color palette
+  pal <- colorNumeric(palette=colPal,reverse=TRUE,
+                      domain=log10(cdt[,count]))
+  
+  # Plot every cluster
+  for (h in cdt[,unique(gh)]) {
+    
+    # Get rectangle info
+    recList <- gh_decode(h, include_delta = TRUE)
+    
+    map <- map %>%
+      addRectangles(lng1=recList$longitude - recList$delta_longitude,
+                    lng2=recList$longitude + recList$delta_longitude,
+                    lat1=recList$latitude - recList$delta_latitude,
+                    lat2=recList$latitude + recList$delta_latitude,
+                    weight=1,opacity=1, fillOpacity=1,
+                    color = cdt[gh==h,count] %>% log10() %>% pal(),
+                    group = groupName
+      )
+    
+  } 
+  map <- map %>% addLegend(position="bottomright",
+                           group=groupName,
+                           pal=pal,opacity=1,
+                           values=log10(cdt[,count]),
+                           labFormat=labelFormat(transform = function(x) {10^x %>% round()}),
+                           title="<b>Obs Count</b>") %>% 
+    clearBounds()
+  return(map)
+}
+
+# Get the data
+data <- fread("data/ABoVE_ Boutin Alberta Grey Wolf.csv",
+              select=c("study-local-timestamp",
+                       "tag-local-identifier",
+                       "location-long",
+                       "location-lat"),
+              stringsAsFactors = FALSE) %>% 
+  na.omit()
+
+
+setnames(data, 
+         old=c("study-local-timestamp",
+               "tag-local-identifier",
+               "location-long",
+               "location-lat"),
+         new=c("dtg", 
+               "cid", 
+               "lon", 
+               "lat")) 
+
+wolf.of.Interest <- data[,.(count=.N),by="cid"][count==max(count)]$cid  
+dt <- data[cid==wolf.of.Interest]
+
+# Plot geohash density map of wolf population and wolf of interest
+baseMap(overGroups=c("All Wolves","Wolf of Interest")) %>% 
+  
+  plotGeohash(pts = data[,c("lon","lat")],
+              geohashPrecision = 6,
+              groupName = "All Wolves",
+              colPal="Reds") %>%
+  plotGeohash(pts = dt[,c("lon","lat")],
+              geohashPrecision = 6,
+              groupName = "Wolf of Interest",
+              colPal="Blues")
+
 
 
 
 
 
 # Data ####
-data <- fread("data/Boutin Alberta Grey Wolf.csv",
+data <- fread("data/ABoVE_ Boutin Alberta Grey Wolf.csv",
               select=c("study-local-timestamp",
                        "tag-local-identifier",
                        "location-long",
