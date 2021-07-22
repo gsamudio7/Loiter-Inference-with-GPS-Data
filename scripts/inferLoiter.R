@@ -1,7 +1,5 @@
 
 # Set up ####
-setwd("~/Desktop/Loiter-Inference-with-GPS-Data")
-
 library(data.table)
 library(bigmemory)
 library(DT)
@@ -22,40 +20,20 @@ library(lubridate)
 library(plotly)
 library(ggplot2)
 library(htmlwidgets)
-
 library(formattable)
 library(utils)
-#pythonLocation <- readline(prompt = "Input python path (in terminal execute: which python) ")
 library(reticulate)
 use_python("/Users/developer/opt/anaconda3/bin/python", required=TRUE)
 
-setwd("~/Desktop/Loiter-Inference-with-GPS-Data")
-source_python("pythonSupport.py")
+
+source_python("scripts/pythonSupport.py")
 
 
 
-library(data.table)
-library(geohashTools)
-library(htmltools)
-library(leaflet)
-library(leaflet.extras)
-library(leafpop)
-library(leafem)
-library(comprehenr)
-library(lubridate)
-library(plotly)
-library(ggplot2)
-library(htmlwidgets)
-library(reticulate)
-library(formattable)
-library(utils)
-library(geodist)
-use_python("/Users/gabesamudio/opt/anaconda3/bin/python")
-source_python("supportFunctions.py")
 
 
 # Data ####
-data <- fread("Boutin Alberta Grey Wolf.csv",
+data <- fread("data/Boutin Alberta Grey Wolf.csv",
               select=c("study-local-timestamp",
                        "tag-local-identifier",
                        "location-long",
