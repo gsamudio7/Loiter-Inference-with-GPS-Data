@@ -1,5 +1,39 @@
 
 # Set up ####
+setwd("~/Desktop/Loiter-Inference-with-GPS-Data")
+
+library(data.table)
+library(bigmemory)
+library(DT)
+library(dplyr)
+library(sf)
+library(sp)
+library(rgeos)
+library(rgdal)
+library(geosphere)
+library(geohashTools)
+library(htmltools)
+library(leaflet)
+library(leaflet.extras)
+library(leafpop)
+library(leafem)
+library(comprehenr)
+library(lubridate)
+library(plotly)
+library(ggplot2)
+library(htmlwidgets)
+
+library(formattable)
+library(utils)
+#pythonLocation <- readline(prompt = "Input python path (in terminal execute: which python) ")
+library(reticulate)
+use_python("/Users/developer/opt/anaconda3/bin/python", required=TRUE)
+
+setwd("~/Desktop/Loiter-Inference-with-GPS-Data")
+source_python("pythonSupport.py")
+
+
+
 library(data.table)
 library(geohashTools)
 library(htmltools)

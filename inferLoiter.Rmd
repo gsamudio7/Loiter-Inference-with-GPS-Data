@@ -1,6 +1,6 @@
 ---
 title: "Loiter Inference with GPS Data"
-author: "[SKOPE Insights and Analytics Team 3](mailto:gabriel.m.samudio@nga.mil)"
+author: "[MAJ Gabe Samudio](mailto:gsamudio7@gmail.com)"
 date: "`r format(Sys.time(), '%d %B %Y')`"
 output:
   html_document:
@@ -18,11 +18,7 @@ bibliography:
 - assets/bib/spatTempClustering.bib
 ---
 
-<script>
-  $(document).ready(function() {
-    $('#TOC').prepend("<div id=\'nav_logo\'><img src='https://gitlab.master.forcenex.us/gap/skope/team-3/team-3-projects/loiter-inference/raw/master/assets/images/logo800.png'></div>");
-  });
-</script>
+
 
 <style>
 #nav_logo {
@@ -72,7 +68,7 @@ library(reticulate)
 library(formattable)
 library(utils)
 #pythonLocation <- readline(prompt = "Input python path (in terminal execute: which python) ")
-use_python("/Users/gms/opt/anaconda3/bin/python")
+use_python("/opt/anaconda3/bin/python")
 source_python("supportFunctions.py")
 ```
 
