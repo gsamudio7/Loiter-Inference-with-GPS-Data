@@ -79,33 +79,10 @@ source("scripts/supportFunctions.R")
 
 ```{r plotInit, cache=FALSE, echo=FALSE, fig.cap="",out.height=600}
 
-# Get the data
-data <- fread("data/ABoVE_ Boutin Alberta Grey Wolf.csv",
-              select=c("study-local-timestamp",
-                       "tag-local-identifier",
-                       "location-long",
-                       "location-lat"),
-              stringsAsFactors = FALSE) %>% 
-  na.omit()
-
-
-setnames(data, 
-         old=c("study-local-timestamp",
-               "tag-local-identifier",
-               "location-long",
-               "location-lat"),
-         new=c("dtg", 
-               "cid", 
-               "lon", 
-               "lat")) 
-
-wolf.of.Interest <- data[,.(count=.N),by="cid"][count==max(count)]$cid  
-dt <- data[cid==wolf.of.Interest]
-
-
-# Render map
+# Render initial map
 load("products/initMap.RData")
 initMap
+
 ```
 
 ##### This map shows the GPS location density for a population of Grey Wolves in northeastern Alberta’s Athabasca Oil Sands Region from early 2012 to late 2014 and highlights the location data for one wolf of interest in blue. Clearly, the wolf of interest has unique movement patterns, but how do we gain insights about this wolf's pattern of life? This tutorial demonstrates a method to extract reliable loiter information from large spatial-temporal GPS data sets.
@@ -132,7 +109,7 @@ The tabs below demonstrate the Extraction Transformation and Load (ETL) process 
 ## Extraction
 The computation below leverages data.table's **fread** function to read the csv and answer some preliminary exploratory questions concerning the data.
 
-```{r extraction, cache=TRUE, class.source="chunk", fig.align="center", fig.width=15, echo=TRUE, fig.cap=""}
+```{r extraction, cache=FALSE, class.source="chunk", fig.align="center", fig.width=15, echo=TRUE, fig.cap=""}
 
 # Leverage fread function from package data.table to quickly read in csv data as an R object.
 initData <- fread("data/ABoVE_ Boutin Alberta Grey Wolf.csv")
@@ -168,7 +145,7 @@ The raw data set has 239,194 observations on 46 wolves. We only need the followi
 - location-lat
 
 The following computation extracts the data relevant to this study, and customizes the column labels for convenience.
-```{r transform, cache=TRUE, class.source='chunk'}
+```{r transform, cache=FALSE, class.source='chunk'}
 # Load only the relevant columns
 data <- fread("data/ABoVE_ Boutin Alberta Grey Wolf.csv",
              select=c("study-local-timestamp",
@@ -203,7 +180,7 @@ setnames(data,
 ## Load
 This study focuses on making inferences about one individual, so we use one wolf as a surrogate. The computation below identifies a wolf of interest and subsets the data to only include this wolf's observations.
 
-```{r load, cache=TRUE, class.source="chunk",fig.cap=""}
+```{r load, cache=FALSE, class.source="chunk",fig.cap=""}
 
 # Use data.table indexing to determine to wolf with the most data
 wolf.of.Interest <- data[,.(count=.N),by="cid"][count==max(count)]$cid # The additional [] gives us which cid has the maximum count
@@ -247,26 +224,26 @@ head(dt) %>% formattable(align="l") %>% as.htmlwidget()
 Before implementing our clustering algorithm, we perform collection analysis to assess the feasibility of clustering and to measure the degree of any temporal collection bias. We use a novel statistical test to show that the clusters present in the wolf of interest's data are different from the clusters seen in the wolf data as a whole. We also assess there is not significant evidence of weekday or time-of-day collection bias. We do however find there is significant collection bias over month and year. There are some time periods where the collection volume is very high and other periods where there is little to no collection. The tabs below demonstrate our collection analysis.
 
 ## Volume by Weekday and Hour
-The following computation manipulates the data and generates a bivariate heatmap to study the the collection volume on every weekday, for each hour of the day.
+We manipulate the data and generate a bivariate heatmap to study the the collection volume on every weekday, for each hour of the day.
 
 
-```{r collectionAnalysis,cache=TRUE,class.source="chunk",fig.align="center",fig.cap="<b>Figure 1: </b>Collection Volume by Hour and Weekday"}
-
+```{r collectionAnalysis,echo=FALSE,cache=FALSE,class.source="chunk",fig.align="center",fig.cap="<b>Figure 1: </b>Collection Volume by Hour and Weekday"}
 
 # Get the count of observations for 
 # each hour on each weekday
-countDT <- dt[,.(Activity=.N),by=c("Hour","Weekday")]
+# countDT <- dt[,.(Activity=.N),by=c("Hour","Weekday")]
+# 
+# # Plot 
+# weekday_and_hour_volume <- plot_ly(dt, x = dt[,Hour], y = dt[,Weekday], 
+#         colors=c("gray15","#990000"),
+#         name=" ",
+#         hovertemplate = paste('<b>Weekday: </b>%{y}',
+#                               '<br><b>Hour: </b>%{x}',
+#                               '<br><b>Count:</b> %{z}')) %>% 
+#   layout(title = "<b>Activity Count by Hour and Weekday</b>") %>% add_histogram2d() %>% plotly_build()
 
-# Plot 
-plot_ly(dt, x = dt[,Hour], y = dt[,Weekday], 
-        colors=c("gray15","#990000"),
-        name=" ",
-        hovertemplate = paste('<b>Weekday: </b>%{y}',
-                              '<br><b>Hour: </b>%{x}',
-                              '<br><b>Count:</b> %{z}')) %>% 
-  layout(title = "<b>Activity Count by Hour and Weekday</b>") %>% add_histogram2d() 
-
-
+load("products/weekday_and_hour_volume.RData")
+weekday_and_hour_volume
 ```
 
 This chart shows us that besides a low level of collection in the afternoon on Monday and early in the morning on Sunday, the collection is generally uniform across all weekdays and time of days. Further analysis is required to determine the statistical significance of how far this data departs from a bivariate uniform distribution. That analysis is omitted in this study, and we assume the data is generally free of hourly and weekday bias.
