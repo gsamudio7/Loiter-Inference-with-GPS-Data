@@ -6,8 +6,6 @@ output:
   html_document:
     css: assets/css/html_report.css
     highlight: haddock
-    includes:
-      in_header: assets/fav.html
     self_contained: yes
     toc: yes
     toc_float: yes
@@ -113,7 +111,7 @@ initMap
 ##### This map shows the GPS location density for a population of Grey Wolves in northeastern Alberta’s Athabasca Oil Sands Region from early 2012 to late 2014 and highlights the location data for one wolf of interest in blue. Clearly, the wolf of interest has unique movement patterns, but how do we gain insights about this wolf's pattern of life? This tutorial demonstrates a method to extract reliable loiter information from large spatial-temporal GPS data sets.
 
 # Abstract
-The rapid growth of spatial-temporal data is advancing analysts' targeting capabilities. With the abundance of available GPS data, analysts can study an individual’s pattern of life, which is a critical step in the F3EA targeting cycle and is used to inform decisions about applying lethal or non-lethal effects. Visibility on when an individual stops, how long they stop, and when they are in-transit can aid in characterizing an area of interest, especially in areas when other information is sparse.  Information about the times and locations where an individual is at most minimally moving is referred to as loiter information.  Analysts currently use spatial density-based clustering techniques to glean insights from large GPS data sets, which has proved vital in characterizing areas of interest by identifying areas where observations occur relatively close together. Loiter information, however, can only be analyzed by adding a time component to the clustering.  This tutorial offers a method to employ Hierarchical Density-Based Spatial Clustering of Application with Noise (HDBSCAN) on both spatial and temporal information. We found that clustering with HDBSCAN spatially and temporally can overcome the known disadvantages of common density-based clustering methods and yield reliable loiter information to inform a pattern of life.
+The rapid growth of spatial-temporal data is advancing analysts' intelligence capabilities. With the abundance of available GPS data, analysts can study an individual’s pattern of life and inform resource allocation decisions. Visibility on when an individual stops, how long they stop, and when they are in-transit can aid in characterizing an area of interest, especially in areas when other information is sparse. Analysts currently use spatial density-based clustering techniques to glean insights from large GPS data sets, which has proved useful in characterizing areas of interest by identifying locations where this is a high number of observations occuring relatively close together. Loiter information, however, can only be analyzed by adding a time component to the clustering. This tutorial offers a method to employ Hierarchical Density-Based Spatial Clustering of Applications with Noise (HDBSCAN) on both spatial and temporal information. We found that clustering with HDBSCAN spatially and temporally can overcome the known disadvantages of common density-based clustering methods and yield reliable loiter information to inform a pattern of life.
 
 # Introduction
 The challenge to using spatial-temporal data is correctly labelling an observation as (substantially) moving or loitering (non-moving). The main assumption common to all loiter inference algorithms is that when an individual is loitering their observations will be relatively close geographically. In contrast, when an individual is moving, the distances between consecutive observations will be comparatively larger. Estimating this relative spatial difference is the key to classifying an observation as loitering or moving. Analysts employ well-established unsupervised learning clustering algorithms to detect possible loiter locations from GPS data such as time-based clustering [@hutchison_project_2004] and [@liu_extracting_2006], the centroid-based k-means clustering [@ashbrook_learning_2002], and various density-based algorithms such as [DBSCAN](http://www2.cs.uh.edu/~ceick/7363/Papers/dbscan.pdf) [@ester_density-based_nodate], [ST-DBSCAN](https://www.sciencedirect.com/science/article/pii/S0169023X06000218) [@birant_st-dbscan_2007], [T-DBSCAN](https://online-journals.org/index.php/i-joe/article/viewFile/3881/3315) [@chen_t-dbscan_2014], and [HDBSCAN](https://www.researchgate.net/publication/315508524_hdbscan_Hierarchical_density_based_clustering) [@campello_hierarchical_2015]. 
@@ -122,7 +120,7 @@ Time-based clustering methods are used with data when movement triggers observat
 
 Density-based methods can identify clusters, including irregularly-shaped ones that don't necessarily stick close to their centroids, without needing to specify how many clusters to search for. DBSCAN takes two parameters: a maximum spatial distance $epsilon$ and the minimum number of observations required for a new cluster, $minPts$. From these parameters, DBSCAN produces clusters of observations spaced within $epsilon$ spatial distance [@birant_st-dbscan_2007]. ST-DBSCAN and T-DBSCAN further discriminate clusters based on temporal distance, which avoids identifying non-loiter clusters such as roads or paths [@chen_t-dbscan_2014] and [@birant_st-dbscan_2007]. The disadvantage is that these algorithms effectively learn what density of observations to expect from the most dense clusters in the data, then ignore potential clusters with lower density. Since individuals loiter in locations of varying size, and for varying time intervals, we expect that a characterization of all loiter locations in a GPS dataset would include clusters of varying density. HDBSCAN, which allows the DBSCAN algorithm to identify clusters of varying density, is more suitable for identifying loiter locations. 
 
-This tutorial demonstrates a methodology, centered on the density-based clustering algorithm HDBSCAN, to infer loiter information about an individual of interest from a GPS dataset. We begin by conducting collection analysis to understand the limitations of the available data. Then we compute data-informed HDBSCAN parameters and cluster spatially. Next, we examine each spatial cluster and cluster again temporally to ensure that the cluster is better understood as a loiter location than a location frequently visited in transit. Finally, we process each cluster for loiter information and visualize our results on an interactive map.
+This tutorial demonstrates an implementation on the density-based clustering algorithm HDBSCAN, to infer loiter information about an individual of interest from a GPS dataset. We begin by conducting collection analysis to understand the limitations of the available data. Then we compute data-informed HDBSCAN parameters and cluster spatially. Next, we examine each spatial cluster and cluster again temporally to ensure that the cluster is better understood as a loiter location than a location frequently visited in transit. Finally, we process each cluster for loiter information and visualize our results on an interactive map.
 
 # Case Study Data {.tabset .tabset-fade}
 This tutorial uses movement data from grey wolves in northeastern Alberta's Athabasca Oil Sands Region, available [here](https://gitlab.master.forcenex.us/gap/skope/team-3/working-data-sets/blob/master/ABoVE_%20Boutin%20Alberta%20Grey%20Wolf.csv). The primary use of this data is in support of the Arctic Animal Movement Archive. The data consists of a large Comma Separated Values (csv) file recording (non-comprehensively) the locations of 46 wolves between March 17, 2012 to September 13, 2014. Further information on how this telemetry data was collected is available [here](https://www.movebank.org/cms/webapp?gwt_fragment=page=studies,path=study492444603). We use this data as a placeholder for GPS data on persons of interest.
@@ -137,7 +135,7 @@ The computation below leverages data.table's **fread** function to read the csv 
 ```{r extraction, cache=TRUE, class.source="chunk", fig.align="center", fig.width=15, echo=TRUE, fig.cap=""}
 
 # Leverage fread function from package data.table to quickly read in csv data as an R object.
-initData <- fread("Boutin Alberta Grey Wolf.csv")
+initData <- fread("data/ABoVE_ Boutin Alberta Grey Wolf.csv")
 
 # How many wolves?
 initData[# all rows
@@ -172,7 +170,7 @@ The raw data set has 239,194 observations on 46 wolves. We only need the followi
 The following computation extracts the data relevant to this study, and customizes the column labels for convenience.
 ```{r transform, cache=TRUE, class.source='chunk'}
 # Load only the relevant columns
-data <- fread("Boutin Alberta Grey Wolf.csv",
+data <- fread("data/ABoVE_ Boutin Alberta Grey Wolf.csv",
              select=c("study-local-timestamp",
                      "tag-local-identifier",
                      "location-long",
@@ -247,73 +245,6 @@ head(dt) %>% formattable(align="l") %>% as.htmlwidget()
 
 # Collection Analysis {.tabset .tabset-fade}
 Before implementing our clustering algorithm, we perform collection analysis to assess the feasibility of clustering and to measure the degree of any temporal collection bias. We use a novel statistical test to show that the clusters present in the wolf of interest's data are different from the clusters seen in the wolf data as a whole. We also assess there is not significant evidence of weekday or time-of-day collection bias. We do however find there is significant collection bias over month and year. There are some time periods where the collection volume is very high and other periods where there is little to no collection. The tabs below demonstrate our collection analysis.
-
-## Cluster Tendency
-We employ a [modified Hopkins statistic](https://confluence.forcenex.us/display/ST3/Modified+Hopkins+Statistic?focusedCommentId=87042800#comment-87042800) to measure the underlying tendency for the wolf of interest's GPS data to geographically cluster independent of any clusters shared by the dataset as a whole. The Hopkins statistic is a random variable calculated from a data set that uses nearest-neighbor distances to express the similarity of that data set to a uniform grid of randomly generated points [@hopkins_new_1954]. As we can see by inspection that the geographic wolf data does not resemble a random uniform distribution over any location, we do not employ the original Hopkins test. Instead, we employ a modified Hopkins statistic which compares the nearest wolf of interest neighbor distance in the wolf of interest set to the same distance for a randomly chosen datapoint from the entire wolf dataset. We define the modified Hopkins statistic,
-
-$$ 
-H = \frac{\sum_{i=1}^{n}{y_{i}}}{\sum_{i=1}^{n}{x_{i}} + \sum_{i=1}^{n}{y_{i}}},
-$$
-where $y_{i}$ is the distance between the $i^{th}$ randomly sampled point in the data set and its nearest neighboring point in the subset of interest and $x_{i}$ is the distance between the $i^{th}$ randomly sampled subset of interest points and its nearest neighbor in that same subset. In our case, the subset of interest is the GPS data for the wolf of interest, and the data set is the complete set of GPS data for all 46 wolves in the study. If $H \approx 0.5$, then $\sum_{i=1}^{n}{x_{i}}$ and $\sum_{i=1}^{n}{y_{i}}$ are close, indicating that wolf of interest points are no closer to each other than we expect for wolf data on avergage, and therefore there can be no clusters specific to the wolf of interest. The original Hopkins statistic, under the null hypothesis that the data is randomly uniform, follows a beta distribution with both parameters equal to the number of points sampled, $n$ [@hopkins_new_1954] and [@lawson_new_1990]. We do not yet know whether the modified Hopkins follows the same distribution under the null hypothesis, but if it does we reject the null if $H > q_{\alpha}(n,n)$.  Using an $\alpha$ of 0.95, this is a bit below 0.52 for a 1000-point sample. We will use the appropriate quantile of the beta distribution as our cutoff for declaring the wolf of interest data independently clusterable.
-
-The following computation defines a function, **runHopkins**, which computes our modified version of the Hopkins statistic. We then generate 100 statistics and compute the sample mean, which we use in our hypothesis test.
-
-```{r hopkins, cache=TRUE, class.source="chunk"}
-
-# Compute the Modified Hopkins Statistic
-runHopkins <- function(subset,dataSet) {
-  
-  # Set up
-  n <- length(subset)
-  m <- ceiling(.1*n)
-  
-  # Sample m << n obs from subset 
-  X <- sample(x=subset,
-              size=m,
-              replace=FALSE)
-  
-  # Get the nearest neighbor distances between subset sample and subset
-  testDistances <- dataSet[subset,c("lon","lat")] %>%
-    geodist::geodist(dataSet[X,c("lon","lat")],measure="haversine") 
-  testDistances[testDistances==0] <- Inf
-  testSum <- apply(testDistances,2,min) %>% sum()
-    
-  # Sample m << n obs from data
-  Y <- sample(x=seq(nrow(dataSet)),
-              size=m,
-              replace=FALSE)
-  
-  # Get the nearest neighbor distances between data sample and subset 
-  ctrlDistances <- dataSet[subset,c("lon","lat")] %>%
-    geodist::geodist(dataSet[Y,c("lon","lat")],measure="haversine") 
-  ctrlDistances[ctrlDistances==0] <- Inf
-  ctrlSum <- apply(ctrlDistances,2,min) %>% sum()
-    
-  # Compute the modified Hopkins statistic
-  H <- ctrlSum / (testSum + ctrlSum)
-  return(H)
-}
-
-# Set the seed 
-set.seed(7654321)
-
-# Compute Hopkins statistic for wolf of interest
-H <- sapply(seq(100), function(i) runHopkins(subset=which(data$cid==wolf.of.Interest),
-                                             dataSet=data)) %>% mean()
-round(H,3)
-
-# Compute critical value
-cv <- qbeta(0.95,ceiling(.1*m),ceiling(.1*m))
-round(cv,3)
-
-# P{H < cv | null hypothesis} = 0.95
-pbeta(q=cv,ceiling(.1*m),ceiling(.1*m))
-
-
-
-```
-
-Since the sample mean modified Hopkins statistic for the wolf of interest subset is well beyond the critical value, `r round(qbeta(0.95,1642,1642),3)`, we have strong evidence of unique GPS clusters in our data, consistent with our visual intrepretation of the geohash density map at the beginning of this tutorial.
 
 ## Volume by Weekday and Hour
 The following computation manipulates the data and generates a bivariate heatmap to study the the collection volume on every weekday, for each hour of the day.
@@ -393,13 +324,13 @@ plot_ly(x=dt[,timeInt] %>% na.omit() %>% as.double() %>% log10(),
 
 ```
 
-The histogram above shows that 95% of the inter-observation times are less than 15 minutes, which means that loiter locations with a dwell time of under one hour may have as few as three observations in our dataset even if we have nominal coverage of the time period. This is typical of many GPS data sets analysts encounter. We can still make reasonable inferences, with the caveat that inferred loiter locations are only predictions based on the information available, and must be corroborated with other information sources.
+The histogram above shows that 95% of the inter-observation times are less than 15 minutes, which means that loiter locations with a dwell time of one hour may have as few as four observations in our data even if we have nominal coverage of the time period. This is typical of many GPS data sets analysts encounter. We can still make reasonable inferences, with the caveat that inferred loiter locations are only predictions based on the information available, and must be corroborated with other information sources.
 
 # Spatial-Temporal Clustering 
-We are now ready to begin extracting loiter information from the data. We implement a modified HDBSCAN to first identify spatial clusters, then we cluster again temporally to find space-time clusters of interest. We then process these results and aggregate loiter information from our study, and convey the results in an interactive leaflet map.
+We are now ready to begin extracting loiter information from the data. We implement HDBSCAN to first identify spatial clusters, then we cluster again temporally to find space-time clusters of interest. We then process these results and aggregate loiter information from our study, and convey the results in an interactive html map.
 
 ## Optimal Parameter Values {.tabset .tabset-fade}
-The next step in our analysis before employing HDSCAN is to use data-informed parameter values for the spatial and temporal $cluster\_selection\_epsilons$. These parameters are used in ST-DBSCAN as the maximum spatial and temporal distance allowed for two observations to be clustered together [@birant_st-dbscan_2007]. In HDBSCAN, these parameters are the minimum distance considered in evaluating cluster densities, and allow us to group together clusters within this distance [@campello_hierarchical_2015]. This parameter prevents the algorithm from incorrectly labelling cluster boundary points as outliers, when the cluster has a relatively high density. More information about this parameter is available [here](https://hdbscan.readthedocs.io/en/latest/how_to_use_epsilon.html). This is a reliable technique for mitigating the known disadvantages of HDBSCAN by combining the algorithm with DBSCAN, while still identifying clusters of varying densities.
+The next step in our analysis before employing HDSCAN is to use data-informed parameter values for the spatial and temporal $cluster\_selection\_epsilons$. These parameters are used in ST-DBSCAN as the maximum spatial and temporal distance allowed for two observations to be clustered together [@birant_st-dbscan_2007]. In HDBSCAN, these parameters are the minimum distance considered in evaluating cluster densities, and allow us to group together clusters within this distance [@campello_hierarchical_2015]. This parameter prevents the algorithm from incorrectly labeling cluster boundary points as outliers when the cluster has a relatively high density. More information about this parameter is available [here](https://hdbscan.readthedocs.io/en/latest/how_to_use_epsilon.html). This is a reliable technique for mitigating the known disadvantages of HDBSCAN by combining the algorithm with DBSCAN, while still identifying clusters of varying densities.
 
 We determine optimal parameter values by computing the distance to each observation's nearest neighbor, sorting these distances, then finding the distance where the increase in nearest neighbor distance is the most dramatic [rahmah_determination_2016]. More details about this method are discussed [here](https://iopscience.iop.org/article/10.1088/1755-1315/31/1/012012/pdf), and a tutorial for how to implement this method in Python is available [here](https://towardsdatascience.com/machine-learning-clustering-dbscan-determine-the-optimal-value-for-epsilon-eps-python-example-3100091cfbc). We find where the change in the nearest neighbor distance is the most pronounced (also known as the "knee") by finding the max curvature in the line plot [@satopaa_finding_2011] using the method described [here](https://raghavan.usc.edu//papers/kneedle-simplex11.pdf) and implemented in Python using the kneed module available [here](https://github.com/arvkevi/kneed)[@arvai_kneed_nodate].
 
@@ -769,17 +700,17 @@ The map below conveys the results of clustering spatially and temporally using H
 
 ```{r plotRes, cache=TRUE, echo=FALSE, fig.cap="",out.height=600}
 numGroups <- dt[,uniqueN(group)]
-baseMap(groups2hide=c("Observations",dt[,unique(group)] %>% 
+baseLeaf(groups2hide=c("Observations",dt[,unique(group)] %>% 
                        sort() %>% 
                        tail(numGroups - 1) %>% as.character()),
         overGroups=c("Observations",dt[,unique(group)] %>% sort() %>% as.character())) %>%
   plotHDB(frame=dt[clus!="0",c("lon","lat","clus","group","Hour","Weekday")],
           loiterData=loiterData,
-          colPal="Blues") %>% 
-  plotGeohash(pts = dt[,c("lon","lat")],
-              geohashPrecision = 7,
-              groupName = "Observations",
-              colPal="Reds")
+          colPal="Blues")# %>%
+  # plotGeohash(pts = dt[,c("lon","lat")],
+  #             geohashPrecision = 7,
+  #             groupName = "Observations",
+  #             colPal="Reds")
 
 ```
 
