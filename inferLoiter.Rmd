@@ -118,7 +118,7 @@ initData <- fread("data/ABoVE_ Boutin Alberta Grey Wolf.csv")
 initData[# all rows
          ,
          # data.table fast unique count for the column 
-         # labelling the different wolves
+         # labeling the different wolves
          uniqueN(`tag-local-identifier`)]
 
 # How big is the data set
@@ -251,54 +251,58 @@ This chart shows us that besides a low level of collection in the afternoon on M
 ## Volume by Date 
 Next we check the collection volume over the time range of the data to judge the collection bias with respect to each day of the study. The computation below generates a scatter plot that conveys how the collection volume has changed over time.
 
-```{r collectionAnalysis2, cache=TRUE, class.source="chunk", fig.align="center",fig.cap="<b>Figure 2: </b>Collection Volume over Time"}
+```{r collectionAnalysis2, echo=FALSE,cache=FALSE, class.source="chunk", fig.align="center",fig.cap="<b>Figure 2: </b>Collection Volume over Time"}
 
-# Generate a column of date objects 
-dt[,"date" := lubridate::date(dtg)]
-
-# Accumulate the observation counts for each day
-dayCount <- dt[,.(count=.N),by=date]
-
-# Plot
-plot_ly(x=dayCount[,date],
-        y=dayCount[,count],
-        type="scatter",mode="markers",
-        marker=list(color="#990000",size=5,opacity=0.65)) %>%
-  layout(title="<b>Daily Activity from\n18MAR12 to 18MAY14\n",
-         xaxis = list(title="Month"),
-         yaxis = list(title="Average Activity"))
-
+# # Generate a column of date objects 
+# dt[,"date" := lubridate::date(dtg)]
+# 
+# # Accumulate the observation counts for each day
+# dayCount <- dt[,.(count=.N),by=date]
+# 
+# # Plot
+# daily_volume <- plot_ly(x=dayCount[,date],
+#         y=dayCount[,count],
+#         type="scatter",mode="markers",
+#         marker=list(color="#990000",size=5,opacity=0.65)) %>%
+#   layout(title="<b>Daily Activity from\n18MAR12 to 18MAY14\n",
+#          xaxis = list(title="Month"),
+#          yaxis = list(title="Average Activity")) %>% plotly_build()
+# save(daily_volume,file="products/daily_volume.RData")
+load("products/daily_volume.RData")
+daily_volume
 ```
 
 The interactive chart reveals three spikes in collection volume in April 2012, March 2013, and January to March 2014, with drastically lower observation counts on the other dates. Also, there are no observations between May 2012 and March 2013, which can drastically skew the interobservation time distribution. Unlike the relatively even distribution of collection for weekday and time of day, this chart conveys severe collection bias over the time range of the study, which means we cannot assume random collection with respect to year or season. Further analysis is required to investigate the cause of the collection bias. We continue our study, restrictings ourselves to identifying locations where the wolf of interest is likely loitering, but mindful that these locations may be year- or season-dependent.
 
 ## Inter-observation Time
 The wolf's activity between his observations is unknown, which can skew our results. We need to study the inter-observation time between the observations of the wolf's activity to judge how well the data represents the wolf's locations.
-```{r dataProcess, class.source='chunk', cache=TRUE,fig.align="center",fig.cap="<b>Figure 3: </b>Inter-observation Time Histogram"}
+```{r dataProcess, class.source='chunk', echo=FALSE, cache=FALSE,fig.align="center",fig.cap="<b>Figure 3: </b>Inter-observation Time Histogram"}
 
-# Create a vector of labels
-tikVals <- dt[,timeInt] %>% na.omit() %>% quantile((0:2)/2) %>% round()
-qt.95 <- dt[,timeInt] %>% na.omit() %>% quantile(.95) %>% round() 
-
-# Plot
-plot_ly(x=dt[,timeInt] %>% na.omit() %>% as.double() %>% log10(),
-        type = "histogram",
-        color=I("#990000"),
-        nbinsx=100,
-        marker = list(line = list(color="white",width=0.5))) %>%
-  layout(
-    xaxis = list(title="Inter-observation Time (minutes)",
-                 tickvals = tikVals %>% log10(),
-                 ticktext = round(tikVals/60,2)),
-    title = "<b>Inter-Observation Time</b><br>",
-    shapes = list(type ="line",
-                  line = list(color="black"),
-                  x0 = log10(qt.95), x1 = log10(qt.95),
-                  y0 = 0, y1 = 10000),
-    annotations = list(text = paste("<b>.95 Quantile: </b>",round(qt.95/60,2),"minutes"),
-                       x = log10(qt.95) + 0.2, y = 10500, showarrow=FALSE))
-
-
+# # Create a vector of labels
+# tikVals <- dt[,timeInt] %>% na.omit() %>% quantile((0:2)/2) %>% round()
+# qt.95 <- dt[,timeInt] %>% na.omit() %>% quantile(.95) %>% round() 
+# 
+# # Plot
+# inter_obs_time <- plot_ly(x=dt[,timeInt] %>% na.omit() %>% as.double() %>% log10(),
+#         type = "histogram",
+#         color=I("#990000"),
+#         nbinsx=100,
+#         marker = list(line = list(color="white",width=0.5))) %>%
+#   layout(
+#     xaxis = list(title="Inter-observation Time (minutes)",
+#                  tickvals = tikVals %>% log10(),
+#                  ticktext = round(tikVals/60,2)),
+#     title = "<b>Inter-Observation Time</b><br>",
+#     shapes = list(type ="line",
+#                   line = list(color="black"),
+#                   x0 = log10(qt.95), x1 = log10(qt.95),
+#                   y0 = 0, y1 = 10000),
+#     annotations = list(text = paste("<b>.95 Quantile: </b>",round(qt.95/60,2),"minutes"),
+#                        x = log10(qt.95) + 0.2, y = 10500, showarrow=FALSE)) %>% plotly_build()
+# 
+# save(inter_obs_time,file="products/inter_obs_time.RData")
+load("products/inter_obs_time.RData")
+inter_obs_time
 ```
 
 The histogram above shows that 95% of the inter-observation times are less than 15 minutes, which means that loiter locations with a dwell time of one hour may have as few as four observations in our data even if we have nominal coverage of the time period. This is typical of many GPS data sets analysts encounter. We can still make reasonable inferences, with the caveat that inferred loiter locations are only predictions based on the information available, and must be corroborated with other information sources.
@@ -332,45 +336,50 @@ def findKnee(order,distances,smoothParam,interpMethod='polynomial'):
 ### Epsilon Spatial Distance
 As described [here](https://towardsdatascience.com/machine-learning-clustering-dbscan-determine-the-optimal-value-for-epsilon-eps-python-example-3100091cfbc), we first calculate the spatial distance to the nearest neighbor for each observation and sort these values. We then find the maximum curvature, and plot the results.
 
-```{r epsSpatialDist, cache=TRUE, class.source="chunk",fig.cap="<b>Figure 4: </b>Sorted Nearest Neighbor Spatial Distance (meters)",cache.lazy=FALSE}
+<br>
 
-# Compute all pairwise haversine distances (meters)
-distances <- geodist::geodist(dt[,c("lon","lat")],measure="haversine") 
+```{r epsSpatialDist, echo=FALSE,cache=FALSE, class.source="chunk",fig.align="center",fig.cap="<b>Figure 4: </b>Sorted Nearest Neighbor Spatial Distance (meters)"}
 
-# Get the distances for the nearest neighbors and sort
-distances[distances==0] <- Inf
-distVec <- apply(distances,2,min) %>% sort()
-
-# Create data.table for plot
-forPlot <- data.table(
-            "dist"=distVec,
-            "order"=distVec %>% length() %>% seq())
-
-# Find the max curvature
-epsSpat <- findKnee(order=forPlot[,order],
-                    distances=distVec,
-                    smoothParam=10.0)
-
-# Plot 
-tikVals <- forPlot[,dist] %>% quantile((0:7)/7) %>% round()
-plot_ly(x=forPlot[order > which(log10(distVec) <= 0) %>% max(),order],
-        y=forPlot[order > which(log10(distVec) <= 0) %>% max(),dist] %>% log10(),
-        type="scatter",
-        mode="lines",color=I("black")) %>%
-  layout(title="<b>Nearest Neighbor Sorted Distances (meters)</b>",
-         xaxis = list(title="Sorted Order by Distance (increasing)"),
-         yaxis = list(title="Distance in meters",
-                      tickvals = tikVals %>% log10(),
-                      ticktext = tikVals),
-         shapes = list(type ="line",
-                       line = list(color="#990000"),
-                       x0 = 0, x1 = which(distVec==epsSpat),
-                       y0 = log10(epsSpat), y1 = log10(epsSpat)),
-         annotations = list(text = paste("<b>Epsilon Spatial Distance: </b>\n",
-                                         round(epsSpat,2),"meters"),
-                            x = 12000, y = log10(epsSpat), showarrow=FALSE))
-
-
+# # Compute all pairwise haversine distances (meters)
+# distances <- geodist::geodist(dt[,c("lon","lat")],measure="haversine") 
+# 
+# # Get the distances for the nearest neighbors and sort
+# distances[distances==0] <- Inf
+# distVec <- apply(distances,2,min) %>% sort()
+# 
+# # Create data.table for plot
+# forPlot <- data.table(
+#             "dist"=distVec,
+#             "order"=distVec %>% length() %>% seq())
+# 
+# # Find the max curvature
+# epsSpat <- findKnee(order=forPlot[,order],
+#                     distances=distVec,
+#                     smoothParam=10.0)
+# save(epsSpat,file="products/epsSpat.RData")
+#
+# # Plot 
+# tikVals <- forPlot[,dist] %>% quantile((0:7)/7) %>% round()
+# spatial_epsilon <- plot_ly(x=forPlot[order > which(log10(distVec) <= 0) %>% max(),order],
+#         y=forPlot[order > which(log10(distVec) <= 0) %>% max(),dist] %>% log10(),
+#         type="scatter",
+#         mode="lines",color=I("black")) %>%
+#   layout(title="<b>Nearest Neighbor Sorted Distances (meters)</b>",
+#          xaxis = list(title="Sorted Order by Distance (increasing)"),
+#          yaxis = list(title="Distance in meters",
+#                       tickvals = tikVals %>% log10(),
+#                       ticktext = tikVals),
+#          shapes = list(type ="line",
+#                        line = list(color="#990000"),
+#                        x0 = 0, x1 = which(distVec==epsSpat),
+#                        y0 = log10(epsSpat), y1 = log10(epsSpat)),
+#          annotations = list(text = paste("<b>Epsilon Spatial Distance: </b>\n",
+#                                          round(epsSpat,2),"meters"),
+#                             x = 12000, y = log10(epsSpat), showarrow=FALSE)) %>% plotly_build()
+# 
+# save(spatial_epsilon,file="products/spatial_epsilon.RData")
+load("products/spatial_epsilon.RData")
+spatial_epsilon
 
 ```
 
@@ -379,42 +388,51 @@ The plot above shows that ~200 meters is the distance just before the nearest ne
 
 ### Epsilon Temporal Distance
 We now apply the same method to get the optimal temporal epsilon distance.
-```{r epsTimeDist, cache=TRUE, class.source="chunk",fig.cap="<b>Figure 5: </b>Sorted Nearest Neighbor Temporal Distance",cache.lazy=FALSE}
 
-# Compute all pair wise time intervals
-timeDistMat <- outer(dt$time,dt$time,difftime,units="secs") %>% abs() 
+<br>
 
-# Get the time intervals for the nearest times
-timeDistMat[timeDistMat==as.difftime(0,units="secs")] <- Inf
-timeDistVec <- apply(timeDistMat,2,min) %>% sort()
+```{r epsTimeDist, echo=FALSE, cache=FALSE, class.source="chunk",fig.align="center",fig.cap="<b>Figure 5: </b>Sorted Nearest Neighbor Temporal Distance (seconds)"}
 
-# Create data.table for plot
-forPlot <- data.table(
-            "timeDist"=timeDistVec,
-            "order"=seq(m))
-
-epsTime <- findKnee(order=forPlot[,order],
-                    distances=forPlot[,timeDist],
-                    smoothParam=10.0)
-
-# Plot 
-tikVals <- forPlot[,timeDist] %>% quantile((0:100)/100) %>% round()
-plot_ly(x=forPlot[order > which(timeDistVec <= 1) %>% max(),order],
-        y=forPlot[order > which(timeDistVec <= 1) %>% max(),timeDist] %>% log10(),
-        type="scatter",
-        mode="lines",color=I("black")) %>%
-  layout(title="<b>Nearest Neighbor Sorted Time Intervals (seconds)</b>",
-         xaxis = list(title="Sorted Order by Distance (increasing)"),
-         yaxis = list(title="Temporal Distance in seconds",
-                      tickvals = tikVals %>% log10(),
-                      ticktext = tikVals),
-         shapes = list(type ="line",
-                       line = list(color="#990000"),
-                       x0 = which(timeDistVec <= 1) %>% max(), 
-                       x1 = which(timeDistVec == epsTime) %>% max(),
-                       y0 = log10(epsTime), y1 = log10(epsTime)),
-         annotations = list(text = paste("<b>Epsilon Temporal Distance: </b>\n",epsTime,"seconds"),
-                            x = 16000, y = log10(epsTime), showarrow=FALSE))
+# # Compute all pair wise time intervals
+# timeDistMat <- outer(dt$time,dt$time,difftime,units="secs") %>% abs() 
+# 
+# # Get the time intervals for the nearest times
+# timeDistMat[timeDistMat==as.difftime(0,units="secs")] <- Inf
+# save(timeDistMat,file="products/timeDistMat.RData")
+# timeDistVec <- apply(timeDistMat,2,min) %>% sort()
+# 
+# # Create data.table for plot
+# forPlot <- data.table(
+#             "timeDist"=timeDistVec,
+#             "order"=seq(m))
+# 
+# epsTime <- findKnee(order=forPlot[,order],
+#                     distances=forPlot[,timeDist],
+#                     smoothParam=10.0)
+#
+#
+# # Plot 
+# tikVals <- forPlot[,timeDist] %>% quantile((0:100)/100) %>% round()
+# temporal_epsilon <- plot_ly(x=forPlot[order > which(timeDistVec <= 1) %>% max(),order],
+#         y=forPlot[order > which(timeDistVec <= 1) %>% max(),timeDist] %>% log10(),
+#         type="scatter",
+#         mode="lines",color=I("black")) %>%
+#   layout(title="<b>Nearest Neighbor Sorted Time Intervals (seconds)</b>",
+#          xaxis = list(title="Sorted Order by Distance (increasing)"),
+#          yaxis = list(title="Temporal Distance in seconds",
+#                       tickvals = tikVals %>% log10(),
+#                       ticktext = tikVals),
+#          shapes = list(type ="line",
+#                        line = list(color="#990000"),
+#                        x0 = which(timeDistVec <= 1) %>% max(), 
+#                        x1 = which(timeDistVec == epsTime) %>% max(),
+#                        y0 = log10(epsTime), y1 = log10(epsTime)),
+#          annotations = list(text = paste("<b>Epsilon Temporal Distance: </b>\n",epsTime,"seconds"),
+#                             x = 16000, y = log10(epsTime), showarrow=FALSE)) %>% plotly_build()
+# 
+# save(temporal_epsilon,file="products/temporal_epsilon.RData")
+load("products/temporal_epsilon.RData")
+temporal_epsilon
 
 
 ```
@@ -469,7 +487,8 @@ def runHDB(points,minClusterSize,epsDist,minSampleSize=None,distMatrix=None,verb
 ### Cluster Workflow
 The computation below applies HDBSCAN with the data-informed parameters for $cluster\_selection\_epsilon$ to find spatial clusters, then again on each spatial clusters to find temporal limits to those clusters. We use the minimum allowable cluster size of 2 to minimize how "smooth" the cluster density estimate is between nearby points, which mitigates HDBSCAN's tendency to identify overlapping clusters [@noauthor_outlier_nodate]. We also use a high minimum sample size to discriminate noisy points from cluster boundary points. This method for using minimum cluster size and minimum sample size is discussed in greater detail [here](https://github.com/scikit-learn-contrib/hdbscan/issues/116) [@noauthor_outlier_nodate].
 
-```{r initial_clusterWorkflow, class.source='chunk', cache=TRUE, fig.cap=""}
+
+```{r initial_clusterWorkflow, class.source='chunk', eval=FALSE, fig.cap=""}
 
 # Cluster spatially
 Y <- runHDB(points=dt[,c("lon","lat")],
@@ -495,22 +514,26 @@ for (i in unique(dt[spatClus != 0, spatClus])) {
 
 # Set cluster column
 dt[,"clus" := tempClus]
+save(dt,file="products/dt.RData")
+```
 
+```{r initial_clusterWorkflow_quickLook, class.source='chunk', cache=TRUE, fig.cap=""}
 # Quick look
+load("products/dt.RData")
 dt[,.(`Obs Count`=.N),by=clus] %>% formattable(align="l") %>% 
   formattable::as.datatable(rownames=FALSE,
                             options=list(
                               searching = FALSE,
                               scrollX = TRUE,
-                              columnDefs = list(list(className = 'dt-left', targets = '_all'))))
+                              columnDefs = list(list(className = 'dt-left', targets = '_all')))) 
 
 ```
 
 
-The table above shows the results of the initial clustering. We see that some clusters only include two observations, and some clusters include above 100 observations, which is a result of HDBSCAN identifying clusters of varying densities. After computing an initial clustering, we screen out clusters that do not include consecutive observations, as as they are not temporally convex (i.e. are made by combining two different times when there is evidence that the wolf was elsewhere in between). The following section describes our method to screen the clusters for evidence that the wolf dwelled in the cluster location.
+The table above shows the results of the initial clustering. We see that some clusters only include two observations, and some clusters include above 100 observations, which is a result of HDBSCAN identifying clusters of varying densities. After computing an initial clustering, we screen out clusters that do not include consecutive observations, as as they are not temporally convex (i.e. are made by combining two different times when there is evidence that the wolf was elsewhere in between). The following section describes our method to screen the clusters for evidence that the wolf loitered in the cluster location.
 
 ### Screening
-We begin screening by finding clusters with consecutive observations. We define the following R function to find the indices of the consecutive observations (values), and the lengths of each segment of consecutive observations (lengths), using a modified version of the R function available [here](https://github.com/cran/cgwtools/blob/master/R/seqle.r) [noauthor_crancgwtools_nodate].
+We begin screening by finding clusters with consecutive observations. We define the following R function to find the indices of the consecutive observations (values), and the lengths of each segment of consecutive observations (lengths), using a modified version of the R function available [here](https://github.com/cran/cgwtools/blob/master/R/seqle.r) [@noauthor_crancgwtools_nodate].
 
 ```{r consecCountFunc, class.source='chunk', cache=TRUE, fig.cap=""}
 
@@ -532,9 +555,11 @@ seqle(which(dt$clus==1.1)) %>% as.data.table() %>% formattable(align="l") %>% as
 
 ```
 
-The table above is the result of our **seqle** function on one cluster. The values column indicates the index of the start of a consecutive segment of observations, and the corresponding lengths column indicates the number of consecutive observations that begin at the value index. We see that for cluster number **1.1** there are consecutive segments with over 1,000 observations. The following computation applies the **seqle** function to each cluster, filters out the segments consisting of only one observation (no evidence of loitering), and calculates the loiter time for each consecutive segment in each cluster. We then filter out the clusters where the wolf visited less than 10 times, and filter out clusters where the wolf spent an average of less than 30 minutes.
+The table above is the result of our **seqle** function on one cluster. The values column indicates the index of the start of a consecutive segment of observations, and the corresponding lengths column indicates the number of consecutive observations that begin at the value index. We see that for cluster number **1.1** there are consecutive segments with over 1,000 observations. 
 
-```{r getLoiterFun, class.source='chunk', cache=TRUE, fig.cap=""}
+We now apply the **seqle** function to each cluster, filter out the segments consisting of only one observation (no evidence of loitering), and calculate the loiter time for each consecutive segment in each cluster. We then filter out the clusters where the wolf visited less than 10 times, and filter out clusters where the wolf spent an average of less than 30 minutes. Full code available [here.](https://github.com/gsamudio7/Loiter-Inference-with-GPS-Data)
+
+```{r getLoiterFun, class.source='chunk', cache=TRUE, eval=FALSE, include=FALSE}
 
 # Function to retrieve loiter time information
 getTimeLoiter <- function(k,frame) {
@@ -583,7 +608,7 @@ processResults <- function(frame,resVector,minLoiterTime,minVisCount,clusterColu
   frame[,"clusVec" := ifelse(clusVec %in% toRemove,0,clusVec)]
   loiterDT <- loiterDT[avgLoiterTime >= minLoiterTime]
 
-  # Relabel column explicitly (for flexibility incase frame has more than one column of cluster labels)
+  # Relabel column explicitly (for flexibility in case frame has more than one column of cluster labels)
   frame[[clusterColumnName]] <- frame[,clusVec]
   
   return(list("frame"=frame[,-"clusVec"],
@@ -600,18 +625,21 @@ resList <- dt %>% processResults(resVector=tempClus,
 
 
 # Store the results
-dt <- resList$frame
-#saveRDS(dt,"wolfClus.Rdata")
+processed_dt <- resList$frame
 loiterData <- resList$loiterDT
+save(processed_dt,loiterData,file="products/loiterData.RData")
+```
 
+```{r quickLookLoiterData, fig.cap="",include=FALSE}
 # View results
+load("products/loiterData.RData")
 loiterData %>% formattable(align="l") %>% as.htmlwidget()
 
 ```
 
-Now that we have stored the results in our data and a list object, we can use this information to plot using leaflet. The functions available [here](https://gitlab.master.forcenex.us/gap/skope/team-3/team-3-projects/loiter-inference) provide a comprehensive method to convey the results of our analysis. We omit the functions in this tutorial for brevity.
+Now that we have stored the results in our data and a list object, we can use this information to plot using leaflet. The functions available [here](https://github.com/gsamudio7/Loiter-Inference-with-GPS-Data) provide a comprehensive method to convey the results of our analysis. We omit the functions in this tutorial for brevity.
 
-```{r plottingFunc, cache=TRUE, include=FALSE, class.source='chunk'}
+```{r plottingFunc, cache=FALSE, include=FALSE, class.source='chunk'}
 
 # Function to generate radial heatmap
 radHeat <- function(fr) {
@@ -676,12 +704,12 @@ plotHDB <- function(map,frame,loiterData,colPal) {
 The map below conveys the results of clustering spatially and temporally using HDBSCAN. The loiter information for each cluster is shown when hovering over each cluster, and a radial heatmap of time of day by weekday is shown when clicking each cluster. We group the clusters by the time of day and include interactive toggles to allow the analyst to study the wolf's pattern of life.
 
 ```{r plotRes, cache=TRUE, echo=FALSE, fig.cap="",out.height=600}
-numGroups <- dt[,uniqueN(group)]
-baseLeaf(groups2hide=c("Observations",dt[,unique(group)] %>% 
+numGroups <- processed_dt[,uniqueN(group)]
+baseLeaf(groups2hide=c("Observations",processed_dt[,unique(group)] %>% 
                        sort() %>% 
                        tail(numGroups - 1) %>% as.character()),
-        overGroups=c("Observations",dt[,unique(group)] %>% sort() %>% as.character())) %>%
-  plotHDB(frame=dt[clus!="0",c("lon","lat","clus","group","Hour","Weekday")],
+        overGroups=c("Observations",processed_dt[,unique(group)] %>% sort() %>% as.character())) %>%
+  plotHDB(frame=processed_dt[clus!="0",c("lon","lat","clus","group","Hour","Weekday")],
           loiterData=loiterData,
           colPal="Blues")# %>%
   # plotGeohash(pts = dt[,c("lon","lat")],
