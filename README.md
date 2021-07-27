@@ -7,4 +7,4 @@ The map below conveys the results of clustering spatially and temporally using H
 
 
 ![](./assets/images/results_screen_shot.png)
-![Interactive Map](./products/resultMap.html)
+[Full Report](./inferLoiter.html)
