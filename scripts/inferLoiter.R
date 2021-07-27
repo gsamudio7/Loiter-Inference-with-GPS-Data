@@ -76,6 +76,9 @@ initMap <- baseLeaf(overGroups=c("Wolf Population","Wolf of Interest")) %>%
 # Save output for faster rendering
 save(initMap, file="products/initMap.RData")
 
+load("products/initMap.RData")
+initMap
+
 
 # Results map ####
 

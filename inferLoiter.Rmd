@@ -35,7 +35,7 @@ bibliography:
 
 ```{r setUp, include=FALSE}
 knitr::opts_chunk$set(
-  cache=TRUE,
+  cache=FALSE,
   message=FALSE,
   warning=FALSE,
   out.width="100%",
@@ -64,7 +64,7 @@ library(comprehenr)
 library(lubridate)
 library(plotly)
 library(ggplot2)
-#library(htmlwidgets)
+library(htmlwidgets)
 library(formattable)
 library(utils)
 library(reticulate)
@@ -148,7 +148,7 @@ The raw data set has 239,194 observations on 46 wolves. We only need the followi
 - location-lat
 
 The following computation extracts the data relevant to this study, and customizes the column labels for convenience.
-```{r transform}
+```{r transform, eval=FALSE}
 # Load only the relevant columns
 data <- fread("data/ABoVE_ Boutin Alberta Grey Wolf.csv",
              select=c("study-local-timestamp",
@@ -183,44 +183,49 @@ setnames(data,
 ## Load
 This study focuses on making inferences about one individual, so we use one wolf as a surrogate. The computation below identifies a wolf of interest and subsets the data to only include this wolf's observations.
 
-```{r load, fig.cap=""}
+```{r load, eval=FALSE, fig.cap=""}
 
 # Use data.table indexing to determine to wolf with the most data
 wolf.of.Interest <- data[,.(count=.N),by="cid"][count==max(count)]$cid # The additional [] gives us which cid has the maximum count
 
 # Subset to focus on one wolf:
-dt <- data[cid==wolf.of.Interest]
-m <- nrow(dt)
+dt_init <- data[cid==wolf.of.Interest]
+m <- nrow(dt_init )
 
 # Create datetime objects from dtg character strings
-dt[,"dtg" := dtg %>% as.POSIXct(format="%Y-%m-%d %H:%M:%S")]
+dt_init [,"dtg" := dtg %>% as.POSIXct(format="%Y-%m-%d %H:%M:%S")]
 
 # Order the data sequentially by date time group
-setorder(dt,dtg)
+setorder(dt_init,dtg)
 
 # Set inter-obs time interval column
-dt[,"timeInt" := dtg %>% difftime(shift(dtg),unit="secs")]
-dt[,"timeInt" := ifelse(timeInt <= 24*3600,timeInt,NA)]
+dt_init[,"timeInt" := dtg %>% difftime(shift(dtg),unit="secs")]
+dt_init[,"timeInt" := ifelse(timeInt <= 24*3600,timeInt,NA)]
 
 # Use lubridate package to get the weekday from the date objects
-dt[,"Weekday" := dtg %>% lubridate::wday(label=TRUE)]
+dt_init[,"Weekday" := dtg %>% lubridate::wday(label=TRUE)]
 
 # Get the hour from the date objects
-dt[,"Hour" := lubridate::hour(dtg)]
+dt_init[,"Hour" := lubridate::hour(dtg)]
 
 # Get the time of day for each dtg
-dt[,"time" := as.ITime(dtg)]
+dt_init[,"time" := as.ITime(dtg)]
 
 # Set group time label (for plotting)
-dt$group <- cut(dt$time,
+dt_init$group <- cut(dt_init$time,
                 breaks=c(0,6*3600,9*3600,12*3600,
                          15*3600,18*3600,21*3600,24*3600),
                 labels=c("0000 - 0600","0600 - 0900","0900 - 1200",
                          "1200 - 1500","1500 - 1800","1800 - 2100",
                          "2100 - 2400"))
 
+save(dt_init,file="products/dt_init.RData")
+```
+
+```{r load_quickLook, echo=FALSE, fig.cap=""}
 # Quick look
-head(dt) %>% formattable(align="l") %>% as.htmlwidget()
+load("products/dt_init.RData")
+head(dt_init) %>% formattable(align="l") %>% as.htmlwidget()
 ```
 
 # Collection Analysis {.tabset .tabset-fade}
@@ -229,6 +234,7 @@ Before implementing our clustering algorithm, we perform collection analysis to 
 ## Volume by Weekday and Hour
 We manipulate the data and generate a bivariate heatmap to study the the collection volume on every weekday, for each hour of the day.
 
+<br>
 
 ```{r collectionAnalysis,echo=FALSE,fig.cap="<b>Figure 1: </b>Collection Volume by Hour and Weekday"}
 
@@ -253,6 +259,8 @@ This chart shows us that besides a low level of collection in the afternoon on M
 
 ## Volume by Date 
 Next we check the collection volume over the time range of the data to judge the collection bias with respect to each day of the study. The computation below generates a scatter plot that conveys how the collection volume has changed over time.
+
+<br>
 
 ```{r collectionAnalysis2, echo=FALSE,fig.cap="<b>Figure 2: </b>Collection Volume over Time"}
 
@@ -279,6 +287,9 @@ The interactive chart reveals three spikes in collection volume in April 2012, M
 
 ## Inter-observation Time
 The wolf's activity between his observations is unknown, which can skew our results. We need to study the inter-observation time between the observations of the wolf's activity to judge how well the data represents the wolf's locations.
+
+<br>
+
 ```{r dataProcess, echo=FALSE,fig.cap="<b>Figure 3: </b>Inter-observation Time Histogram"}
 
 # # Create a vector of labels
@@ -538,7 +549,7 @@ The table above shows the results of the initial clustering. We see that some cl
 ### Screening
 We begin screening by finding clusters with consecutive observations. We define the following R function to find the indices of the consecutive observations (values), and the lengths of each segment of consecutive observations (lengths), using a modified version of the R function available [here](https://github.com/cran/cgwtools/blob/master/R/seqle.r) [@noauthor_crancgwtools_nodate].
 
-```{r consecCountFunc, echo=FALSE, fig.cap=""}
+```{r consecCountFunc, fig.cap=""}
 
 # Function to find consecutive integers, and the length of each consecutive instance
 seqle <- function(x,incr=1) { 
@@ -604,7 +615,7 @@ resultMap <- baseLeaf(groups2hide=c("Observations",processed_dt[,unique(group)] 
           colPal="Blues") %>%
 
   plotH3(pts=processed_dt[,c("lon","lat")],
-         h3Resolution=12,
+         h3Resolution=8,
          groupName="Observations",
          colPal="inferno",
          reverseColorPalette=FALSE,
