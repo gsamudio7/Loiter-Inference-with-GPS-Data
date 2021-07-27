@@ -3,4 +3,4 @@ The rapid growth of spatial-temporal data is advancing analysts' targetting capa
 
 
 
-![]("products/resultMap.html")
+![](./products/resultMap.html)
