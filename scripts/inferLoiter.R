@@ -86,21 +86,24 @@ initMap
 load("products/loiterData.RData")
 
 numGroups <- processed_dt[,uniqueN(group)]
-resultMap <- baseLeaf(groups2hide=c("Observations",processed_dt[,unique(group)] %>% 
+resultMap <- baseLeaf(groups2hide=c(processed_dt[,unique(group)] %>% 
                                       sort() %>% 
                                       tail(numGroups - 1) %>% as.character()),
-                      overGroups=c("Observations",processed_dt[,unique(group)] %>% sort() %>% as.character())) %>%
-  
-  plotHDBSCAN(frame=processed_dt[clus!="0",c("lon","lat","clus","group","Hour","Weekday")],
-              loiterData=loiterData,
-              colPal="Oranges") %>%
+                      overGroups=c("Observations",processed_dt[,unique(group)] %>% 
+                                   sort() %>% as.character())) %>%
   
   plotH3(pts=processed_dt[,c("lon","lat")],
          h3Resolution=8,
          groupName="Observations",
          colPal="Blues",
          reverseColorPalette=TRUE,
-         H3_labels=FALSE)
+         H3_labels=FALSE) %>%
+  
+  plotHDBSCAN(frame=processed_dt[clus!="0",c("lon","lat","clus","group","Hour","Weekday")],
+              loiterData=loiterData,
+              colPal="Oranges") 
+  
+  
 
 save(resultMap, file="products/resultMap.RData")
 
