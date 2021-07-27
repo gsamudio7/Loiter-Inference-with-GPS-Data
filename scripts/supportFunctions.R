@@ -228,10 +228,73 @@ processResults <- function(frame,resVector,minLoiterTime,minVisCount,clusterColu
                 merge(loiterDT,by="clusVec")))
 }
 
-# Function to generate radial heatmap
-radHeat <- function(fr) {
+
+military_time <- function(hour_integer) {
+  if (nchar(hour_integer)==1) {
+    return(paste0("0",hour_integer,"00"))
+  } else {return(paste0(hour_integer,"00"))}
+}
+
+
+activity_heat <- function(fr) {
+  fr$Hour <- fr$Hour %>% Vectorize(military_time)() %>% factor(levels=Vectorize(military_time)(1:24))
   countDT <- fr[,.(Activity=.N),by=c("Hour","Weekday")]
   ggplot(fr,aes(x=Hour,y=Weekday)) + 
-    geom_tile(data=countDT,aes(fill=Activity)) + 
-    coord_polar() 
+    geom_tile(data=countDT,aes(fill=Activity)) +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1,color="#FFFFFF"),
+          axis.text.y = element_text(color="#FFFFFF"),
+          axis.title = element_text(color="#FFFFFF"),
+          plot.background = element_rect(fill = "#333333"))
+}
+
+
+plotHDBSCAN <- function(map,frame,loiterData,colPal) {
+  
+  # Organize parameters
+  m <- dim(frame)[1]
+  frame$clusVec <- frame[[3]]
+  pal <- colorNumeric(palette=colPal,reverse=TRUE,
+                      domain=loiterData[,avgLoiterTime])
+  
+  # Plot every cluster
+  for (k in frame[,unique(clusVec)]) {
+    
+    # Generate sf object for each cluster
+    toPlot <- frame[clusVec==k,c("lon","lat")] %>% as.matrix() %>%
+      sf::st_multipoint() %>%
+      sf::st_convex_hull()
+    
+    centroid <- toPlot %>% sf::st_centroid() %>% sf::st_coordinates()
+    centroid_mgrs <- mgrs::latlng_to_mgrs(longitude=centroid[,1],
+                                          latitude=centroid[,2])
+    # Plot polygon on map
+    for (g in unique(frame[clusVec==k,group])) {
+      map <- map %>%
+        addPolygons(data = toPlot,weight=2,opacity=1, fillOpacity=0.6,
+                    color = loiterData[clusVec==k,avgLoiterTime] %>% pal(),
+                    group = g,
+                    highlightOptions = highlightOptions(color="white", 
+                                                        weight=2.5,
+                                                        bringToFront=TRUE),
+                    popup = leafpop::popupGraph(
+                      activity_heat(fr=frame[clusVec==k,c("Hour","Weekday")])),
+                    label = HTML(paste0("<b>MGRS: </b>", centroid_mgrs,
+                                        "<br><b>Avg Loiter Time: </b>",
+                                        round(loiterData[clusVec==k,avgLoiterTime]) %>%
+                                          seconds_to_period(),"<br>",
+                                        "<b>Avg Activity per Visit: </b>",
+                                        loiterData[clusVec==k,`Avg Activity per Visit`],"<br>",
+                                        "<b>Visit Count: </b>",
+                                        loiterData[clusVec==k,`Visit Count`],"<br>",
+                                        "<b>Obs Count: </b>",
+                                        loiterData[clusVec==k,count],"<br>",
+                                        "<b>Data Proportion: </b>",
+                                        round(loiterData[clusVec==k,count]/m,3))),
+                    labelOptions = labelOptions(opacity=0.85,
+                                                style=list("background-color"="#333",
+                                                           "color"="#FFF"))
+        )
+    }
+  }
+  return(map %>% clearBounds())
 }

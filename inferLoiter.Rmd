@@ -604,16 +604,18 @@ Now that we have stored the results in our data and a list object, we can use th
 The map below conveys the results of clustering spatially and temporally using HDBSCAN. The loiter information for each cluster is shown when hovering over each cluster, and a radial heatmap of time of day by weekday is shown when clicking each cluster. We group the clusters by the time of day and include interactive toggles to allow the analyst to study the wolf's pattern of life.
 
 ```{r plotRes, echo=FALSE, eval=FALSE}
+load("products/loiterData.RData")
+
 numGroups <- processed_dt[,uniqueN(group)]
 resultMap <- baseLeaf(groups2hide=c("Observations",processed_dt[,unique(group)] %>% 
-                       sort() %>% 
-                       tail(numGroups - 1) %>% as.character()),
-        overGroups=c("Observations",processed_dt[,unique(group)] %>% sort() %>% as.character())) %>%
+                                      sort() %>% 
+                                      tail(numGroups - 1) %>% as.character()),
+                      overGroups=c("Observations",processed_dt[,unique(group)] %>% sort() %>% as.character())) %>%
   
-  plotHDB(frame=processed_dt[clus!="0",c("lon","lat","clus","group","Hour","Weekday")],
-          loiterData=loiterData,
-          colPal="Blues") %>%
-
+  plotHDBSCAN(frame=processed_dt[clus!="0",c("lon","lat","clus","group","Hour","Weekday")],
+              loiterData=loiterData,
+              colPal="Blues") %>%
+  
   plotH3(pts=processed_dt[,c("lon","lat")],
          h3Resolution=8,
          groupName="Observations",
