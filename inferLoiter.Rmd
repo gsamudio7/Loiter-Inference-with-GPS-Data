@@ -34,11 +34,8 @@ bibliography:
 
 
 ```{r setUp, include=FALSE}
-cat("\014")
-rm(list=ls())
-
 knitr::opts_chunk$set(
-  cache=FALSE,
+  cache=TRUE,
   message=FALSE,
   warning=FALSE,
   out.width="100%",
