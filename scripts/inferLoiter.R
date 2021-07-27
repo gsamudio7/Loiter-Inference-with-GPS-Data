@@ -34,7 +34,7 @@ source_python("scripts/supportFunctions.py")
 # Read in defined support functions
 source("scripts/supportFunctions.R")
 
-
+# Initial Map ####
 
 # Get the data
 data <- fread("data/ABoVE_ Boutin Alberta Grey Wolf.csv",
@@ -77,7 +77,80 @@ initMap <- baseLeaf(overGroups=c("Wolf Population","Wolf of Interest")) %>%
 save(initMap, file="products/initMap.RData")
 
 
+# Results map ####
 
+# Read in processed data
+load("products/loiterData.RData")
+
+plotHDB <- function(map,frame,loiterData,colPal) {
+  
+  # Organize parameters
+  m <- dim(frame)[1]
+  frame$clusVec <- frame[[3]]
+  pal <- colorNumeric(palette=colPal,reverse=TRUE,
+                      domain=loiterData[,avgLoiterTime])
+  
+  # Plot every cluster
+  for (k in frame[,unique(clusVec)]) {
+    
+    # Generate spatial polygons for each cluster
+    toPlot <- suppressWarnings(
+      frame[clusVec==k,c(1,2)] %>% 
+        SpatialPoints() %>%
+        gConvexHull()
+    )
+    if (class(toPlot) != "SpatialPoints" & class(toPlot) != "SpatialLines") {
+      
+      # Plot polygon on map
+      for (g in unique(frame[clusVec==k,group])) {
+        map <- map %>%
+          addPolygons(data = toPlot,weight=2,opacity=1, fillOpacity=0.6,
+                      color = loiterData[clusVec==k,avgLoiterTime] %>% pal(),
+                      group = g,
+                      highlightOptions = highlightOptions(color="white", 
+                                                          weight=2.5,
+                                                          bringToFront=TRUE),
+                      popup = leafpop::popupGraph(radHeat(frame[clusVec==k,c("Hour","Weekday")])),
+                      label = HTML(paste0("<b>Avg Loiter Time: </b>",
+                                          round(loiterData[clusVec==k,avgLoiterTime]) %>%
+                                            seconds_to_period(),"<br>",
+                                          "<b>Avg Activity per Visit: </b>",
+                                          loiterData[clusVec==k,`Avg Activity per Visit`],"<br>",
+                                          "<b>Visit Count: </b>",
+                                          loiterData[clusVec==k,`Visit Count`],"<br>",
+                                          "<b>Obs Count: </b>",
+                                          loiterData[clusVec==k,count],"<br>",
+                                          "<b>Data Proportion: </b>",
+                                          round(loiterData[clusVec==k,count]/m,3))),
+                      labelOptions = labelOptions(opacity=0.85,
+                                                  style=list("background-color"="#333",
+                                                             "color"="#FFF"))
+          )
+      }
+    } 
+  }
+  return(map %>% clearBounds())
+}
+
+
+numGroups <- processed_dt[,uniqueN(group)]
+resultMap <- baseLeaf(groups2hide=c("Observations",processed_dt[,unique(group)] %>% 
+                                      sort() %>% 
+                                      tail(numGroups - 1) %>% as.character()),
+                      overGroups=c("Observations",processed_dt[,unique(group)] %>% sort() %>% as.character())) %>%
+  
+  plotHDB(frame=processed_dt[clus!="0",c("lon","lat","clus","group","Hour","Weekday")],
+          loiterData=loiterData,
+          colPal="Blues") %>%
+  
+  plotH3(pts=processed_dt[,c("lon","lat")],
+         h3Resolution=12,
+         groupName="Observations",
+         colPal="inferno",
+         reverseColorPalette=FALSE,
+         H3_labels=FALSE)
+
+save(resultMap, file="products/resultMap.RData")
 
 
 

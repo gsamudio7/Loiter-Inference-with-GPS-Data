@@ -34,12 +34,17 @@ bibliography:
 
 
 ```{r setUp, include=FALSE}
+cat("\014")
+rm(list=ls())
+
 knitr::opts_chunk$set(
-  cache=TRUE,
+  cache=FALSE,
   message=FALSE,
   warning=FALSE,
   out.width="100%",
-  fig.cap=TRUE
+  fig.cap=TRUE,
+  fig.align="center",
+  class.source="chunk"
 )
 
 library(data.table)
@@ -62,12 +67,13 @@ library(comprehenr)
 library(lubridate)
 library(plotly)
 library(ggplot2)
-library(htmlwidgets)
+#library(htmlwidgets)
 library(formattable)
 library(utils)
 library(reticulate)
 library(base64enc)
 library(h3)
+library(mgrs)
 use_python("/Users/developer/opt/anaconda3/bin/python", required=TRUE)
 source_python("scripts/supportFunctions.py")
 
@@ -77,7 +83,7 @@ source("scripts/supportFunctions.R")
 ```
 
 
-```{r plotInit, cache=FALSE, echo=FALSE, fig.cap="",out.height=600}
+```{r plotInit, echo=FALSE, fig.cap="",out.height=600}
 
 # Render initial map
 load("products/initMap.RData")
@@ -109,7 +115,7 @@ The tabs below demonstrate the Extraction Transformation and Load (ETL) process 
 ## Extraction
 The computation below leverages data.table's **fread** function to read the csv and answer some preliminary exploratory questions concerning the data.
 
-```{r extraction, cache=FALSE, class.source="chunk", fig.align="center", fig.width=15, echo=TRUE, fig.cap=""}
+```{r extraction, fig.width=15, echo=TRUE, fig.cap=""}
 
 # Leverage fread function from package data.table to quickly read in csv data as an R object.
 initData <- fread("data/ABoVE_ Boutin Alberta Grey Wolf.csv")
@@ -145,7 +151,7 @@ The raw data set has 239,194 observations on 46 wolves. We only need the followi
 - location-lat
 
 The following computation extracts the data relevant to this study, and customizes the column labels for convenience.
-```{r transform, cache=FALSE, class.source='chunk'}
+```{r transform}
 # Load only the relevant columns
 data <- fread("data/ABoVE_ Boutin Alberta Grey Wolf.csv",
              select=c("study-local-timestamp",
@@ -180,7 +186,7 @@ setnames(data,
 ## Load
 This study focuses on making inferences about one individual, so we use one wolf as a surrogate. The computation below identifies a wolf of interest and subsets the data to only include this wolf's observations.
 
-```{r load, cache=FALSE, class.source="chunk",fig.cap=""}
+```{r load, fig.cap=""}
 
 # Use data.table indexing to determine to wolf with the most data
 wolf.of.Interest <- data[,.(count=.N),by="cid"][count==max(count)]$cid # The additional [] gives us which cid has the maximum count
@@ -227,7 +233,7 @@ Before implementing our clustering algorithm, we perform collection analysis to 
 We manipulate the data and generate a bivariate heatmap to study the the collection volume on every weekday, for each hour of the day.
 
 
-```{r collectionAnalysis,echo=FALSE,cache=FALSE,class.source="chunk",fig.align="center",fig.cap="<b>Figure 1: </b>Collection Volume by Hour and Weekday"}
+```{r collectionAnalysis,echo=FALSE,fig.cap="<b>Figure 1: </b>Collection Volume by Hour and Weekday"}
 
 # Get the count of observations for 
 # each hour on each weekday
@@ -251,7 +257,7 @@ This chart shows us that besides a low level of collection in the afternoon on M
 ## Volume by Date 
 Next we check the collection volume over the time range of the data to judge the collection bias with respect to each day of the study. The computation below generates a scatter plot that conveys how the collection volume has changed over time.
 
-```{r collectionAnalysis2, echo=FALSE,cache=FALSE, class.source="chunk", fig.align="center",fig.cap="<b>Figure 2: </b>Collection Volume over Time"}
+```{r collectionAnalysis2, echo=FALSE,fig.cap="<b>Figure 2: </b>Collection Volume over Time"}
 
 # # Generate a column of date objects 
 # dt[,"date" := lubridate::date(dtg)]
@@ -276,7 +282,7 @@ The interactive chart reveals three spikes in collection volume in April 2012, M
 
 ## Inter-observation Time
 The wolf's activity between his observations is unknown, which can skew our results. We need to study the inter-observation time between the observations of the wolf's activity to judge how well the data represents the wolf's locations.
-```{r dataProcess, class.source='chunk', echo=FALSE, cache=FALSE,fig.align="center",fig.cap="<b>Figure 3: </b>Inter-observation Time Histogram"}
+```{r dataProcess, echo=FALSE,fig.cap="<b>Figure 3: </b>Inter-observation Time Histogram"}
 
 # # Create a vector of labels
 # tikVals <- dt[,timeInt] %>% na.omit() %>% quantile((0:2)/2) %>% round()
@@ -318,7 +324,7 @@ We determine optimal parameter values by computing the distance to each observat
 ### Find kneedle function
 We define the Python function below to calculate the max cuvature of a line plot. We use it by setting the x-axis as the **order** vector and the y-axis as the **distances** vector, which produces a convex increasing curve. The y-value for the knee in the curve is the optimal parameter value for $cluster\_selection\_epsilon$.
 
-```{python findKneefunc, eval=FALSE, class.source="chunk"}
+```{python findKneefunc, eval=FALSE}
 from kneed import KneeLocator
 
 def findKnee(order,distances,smoothParam,interpMethod='polynomial'):
@@ -338,7 +344,7 @@ As described [here](https://towardsdatascience.com/machine-learning-clustering-d
 
 <br>
 
-```{r epsSpatialDist, echo=FALSE,cache=FALSE, class.source="chunk",fig.align="center",fig.cap="<b>Figure 4: </b>Sorted Nearest Neighbor Spatial Distance (meters)"}
+```{r epsSpatialDist, echo=FALSE,fig.cap="<b>Figure 4: </b>Sorted Nearest Neighbor Spatial Distance (meters)"}
 
 # # Compute all pairwise haversine distances (meters)
 # distances <- geodist::geodist(dt[,c("lon","lat")],measure="haversine") 
@@ -391,7 +397,7 @@ We now apply the same method to get the optimal temporal epsilon distance.
 
 <br>
 
-```{r epsTimeDist, echo=FALSE, cache=FALSE, class.source="chunk",fig.align="center",fig.cap="<b>Figure 5: </b>Sorted Nearest Neighbor Temporal Distance (seconds)"}
+```{r epsTimeDist, echo=FALSE, fig.cap="<b>Figure 5: </b>Sorted Nearest Neighbor Temporal Distance (seconds)"}
 
 # # Compute all pair wise time intervals
 # timeDistMat <- outer(dt$time,dt$time,difftime,units="secs") %>% abs() 
@@ -444,7 +450,7 @@ The plot above shows that the optimal temporal epsilon distance is 12 seconds. E
 Equipped with data informed parameters, we are ready to cluster spatially and temporally using HDBSCAN. We define the Python function below, which uses [Python's sklearn HDBSCAN algorithm](https://hdbscan.readthedocs.io/en/latest/basic_hdbscan.html) [@mcinnes_hdbscan_nodate]. The function allows us to cluster using the haversine distance when we are clustering spatially and allows us to cluster temporally by inputting a pre-computed time distance matrix.
 
 ### Python Function
-```{python HDBfunc, eval=FALSE, class.source="chunk"}
+```{python HDBfunc, eval=FALSE}
 # Imports
 import numpy as np
 import pandas as pd
@@ -488,7 +494,7 @@ def runHDB(points,minClusterSize,epsDist,minSampleSize=None,distMatrix=None,verb
 The computation below applies HDBSCAN with the data-informed parameters for $cluster\_selection\_epsilon$ to find spatial clusters, then again on each spatial clusters to find temporal limits to those clusters. We use the minimum allowable cluster size of 2 to minimize how "smooth" the cluster density estimate is between nearby points, which mitigates HDBSCAN's tendency to identify overlapping clusters [@noauthor_outlier_nodate]. We also use a high minimum sample size to discriminate noisy points from cluster boundary points. This method for using minimum cluster size and minimum sample size is discussed in greater detail [here](https://github.com/scikit-learn-contrib/hdbscan/issues/116) [@noauthor_outlier_nodate].
 
 
-```{r initial_clusterWorkflow, class.source='chunk', eval=FALSE, fig.cap=""}
+```{r initial_clusterWorkflow, eval=FALSE, fig.cap=""}
 
 # Cluster spatially
 Y <- runHDB(points=dt[,c("lon","lat")],
@@ -517,7 +523,7 @@ dt[,"clus" := tempClus]
 save(dt,file="products/dt.RData")
 ```
 
-```{r initial_clusterWorkflow_quickLook, class.source='chunk', cache=TRUE, fig.cap=""}
+```{r initial_clusterWorkflow_quickLook,echo=FALSE,fig.cap=""}
 # Quick look
 load("products/dt.RData")
 dt[,.(`Obs Count`=.N),by=clus] %>% formattable(align="l") %>% 
@@ -535,7 +541,7 @@ The table above shows the results of the initial clustering. We see that some cl
 ### Screening
 We begin screening by finding clusters with consecutive observations. We define the following R function to find the indices of the consecutive observations (values), and the lengths of each segment of consecutive observations (lengths), using a modified version of the R function available [here](https://github.com/cran/cgwtools/blob/master/R/seqle.r) [@noauthor_crancgwtools_nodate].
 
-```{r consecCountFunc, class.source='chunk', cache=TRUE, fig.cap=""}
+```{r consecCountFunc, echo=FALSE, fig.cap=""}
 
 # Function to find consecutive integers, and the length of each consecutive instance
 seqle <- function(x,incr=1) { 
@@ -559,62 +565,8 @@ The table above is the result of our **seqle** function on one cluster. The valu
 
 We now apply the **seqle** function to each cluster, filter out the segments consisting of only one observation (no evidence of loitering), and calculate the loiter time for each consecutive segment in each cluster. We then filter out the clusters where the wolf visited less than 10 times, and filter out clusters where the wolf spent an average of less than 30 minutes. Full code available [here.](https://github.com/gsamudio7/Loiter-Inference-with-GPS-Data)
 
-```{r getLoiterFun, class.source='chunk', cache=TRUE, eval=FALSE, include=FALSE}
+```{r getLoiterFun, eval=FALSE, include=FALSE}
 
-# Function to retrieve loiter time information
-getTimeLoiter <- function(k,frame) {
-  clusList <- seqle(which(frame$clus==k))
-  if (clusList$lengths %>% length() > 1) {
-    idx <- to_vec(for (i in 1:length(clusList$lengths)) {
-      seq(from=clusList$values[i], 
-          to=clusList$values[i] + clusList$lengths[i])
-      })
-    clusDT <- data.table(
-                      # Time interval column where the traveler is in cluster k
-                      time=frame[idx,timeInt],
-                     
-                      # Artificial label each instance in cluster k
-                      instance=rep(1:length(clusList$values),times=clusList$lengths + 1))
-    
-    timeLoiterDT <- clusDT[time <= 15*60,.(`Time Loitering`=sum(time,na.rm=TRUE)),by=instance] 
-    times <- timeLoiterDT[,`Time Loitering`]
-    return(c(times %>% mean(),
-             length(clusList$lengths),
-             round(mean(clusList$lengths))))
-  } else {return(c(NA,NA,NA))}
-}
-
-
-processResults <- function(frame,resVector,minLoiterTime,minVisCount,clusterColumnName) {
-  
-  # Set the cluster labels
-  frame[,"clusVec" := resVector]
-  
-  # Initialize data.table to store loiter info
-  loiterDT <- data.table(clusVec=unique(frame[clusVec!=0,clusVec])) %>% 
-    cbind(t(sapply(unique(frame[clusVec!=0,clusVec]),getTimeLoiter,frame))) %>% na.omit()
-  setnames(loiterDT,c("V1","V2","V3"),c("avgLoiterTime","Visit Count","Avg Activity per Visit"))
-  
-  # Remove clusters with only one visit
-  frame[,"clusVec" := ifelse(clusVec %in% loiterDT$clusVec,clusVec,0)]
-  
-  # Check number of visits
-  toRemove <- loiterDT[`Visit Count` < minVisCount,clusVec]
-  frame[,"clusVec" := ifelse(clusVec %in% toRemove,0,clusVec)]
-  loiterDT <- loiterDT[`Visit Count` >= minVisCount]
-  
-  # Check loiter times
-  toRemove <- loiterDT[avgLoiterTime < minLoiterTime,clusVec]
-  frame[,"clusVec" := ifelse(clusVec %in% toRemove,0,clusVec)]
-  loiterDT <- loiterDT[avgLoiterTime >= minLoiterTime]
-
-  # Relabel column explicitly (for flexibility in case frame has more than one column of cluster labels)
-  frame[[clusterColumnName]] <- frame[,clusVec]
-  
-  return(list("frame"=frame[,-"clusVec"],
-              "loiterDT"=frame[clusVec!=0,.(count=.N),by=clusVec] %>% 
-                          merge(loiterDT,by="clusVec")))
-}
 
 # Execute the processing function with the data informed parameters
 resList <- dt %>% processResults(resVector=tempClus,
@@ -639,73 +591,11 @@ loiterData %>% formattable(align="l") %>% as.htmlwidget()
 
 Now that we have stored the results in our data and a list object, we can use this information to plot using leaflet. The functions available [here](https://github.com/gsamudio7/Loiter-Inference-with-GPS-Data) provide a comprehensive method to convey the results of our analysis. We omit the functions in this tutorial for brevity.
 
-```{r plottingFunc, cache=FALSE, include=FALSE, class.source='chunk'}
-
-# Function to generate radial heatmap
-radHeat <- function(fr) {
-  countDT <- fr[,.(Activity=.N),by=c("Hour","Weekday")]
-  ggplot(fr,aes(x=Hour,y=Weekday)) + 
-    geom_tile(data=countDT,aes(fill=Activity)) + 
-    coord_polar() 
-}
-
-# Function to plot the HDBSCAN results
-plotHDB <- function(map,frame,loiterData,colPal) {
-  
-  # Organize parameters
-  m <- dim(frame)[1]
-  frame$clusVec <- frame[[3]]
-  pal <- colorNumeric(palette=colPal,reverse=TRUE,
-                      domain=loiterData[,avgLoiterTime])
-  
-  # Plot every cluster
-  for (k in frame[,unique(clusVec)]) {
-    
-    # Generate spatial polygons for each cluster
-    toPlot <- suppressWarnings(
-      frame[clusVec==k,c(1,2)] %>% 
-      SpatialPoints() %>%
-      gConvexHull()
-    )
-    if (class(toPlot) != "SpatialPoints" & class(toPlot) != "SpatialLines") {
-      
-      # Plot polygon on map
-      for (g in unique(frame[clusVec==k,group])) {
-      map <- map %>%
-        addPolygons(data = toPlot,weight=2,opacity=1, fillOpacity=0.6,
-                    color = loiterData[clusVec==k,avgLoiterTime] %>% pal(),
-                    group = g,
-                    highlightOptions = highlightOptions(color="white", 
-                                                        weight=2.5,
-                                                        bringToFront=TRUE),
-                    popup = leafpop::popupGraph(radHeat(frame[clusVec==k,c("Hour","Weekday")])),
-                    label = HTML(paste0("<b>Avg Loiter Time: </b>",
-                                        round(loiterData[clusVec==k,avgLoiterTime]) %>%
-                                        seconds_to_period(),"<br>",
-                                        "<b>Avg Activity per Visit: </b>",
-                                        loiterData[clusVec==k,`Avg Activity per Visit`],"<br>",
-                                        "<b>Visit Count: </b>",
-                                        loiterData[clusVec==k,`Visit Count`],"<br>",
-                                        "<b>Obs Count: </b>",
-                                        loiterData[clusVec==k,count],"<br>",
-                                        "<b>Data Proportion: </b>",
-                                        round(loiterData[clusVec==k,count]/m,3))),
-                   labelOptions = labelOptions(opacity=0.85,
-                                               style=list("background-color"="#333",
-                                                          "color"="#FFF"))
-        )
-      }
-    } 
-  }
-  return(map %>% clearBounds())
-}
-
-```
 
 # Results
 The map below conveys the results of clustering spatially and temporally using HDBSCAN. The loiter information for each cluster is shown when hovering over each cluster, and a radial heatmap of time of day by weekday is shown when clicking each cluster. We group the clusters by the time of day and include interactive toggles to allow the analyst to study the wolf's pattern of life.
 
-```{r plotRes, cache=TRUE, echo=FALSE, fig.cap="",out.height=600}
+```{r plotRes, echo=FALSE, eval=FALSE}
 numGroups <- processed_dt[,uniqueN(group)]
 resultMap <- baseLeaf(groups2hide=c("Observations",processed_dt[,unique(group)] %>% 
                        sort() %>% 
@@ -723,7 +613,12 @@ resultMap <- baseLeaf(groups2hide=c("Observations",processed_dt[,unique(group)] 
          reverseColorPalette=FALSE,
          H3_labels=FALSE)
 
-saveWidget(resultMap, file="products/resultMap.html")
+save(resultMap, file="products/resultMap.RData")
+```
+
+```{r plotResultMap, echo=FALSE, fig.cap="",out.height=600}
+load("products/resultMap.RData")
+resultMap
 ```
 
 # Conclusion

@@ -172,3 +172,66 @@ plotH3 <- function(map,pts,h3Resolution,groupName,colPal,reverseColorPalette=TRU
   )
   
 }
+
+# Function to retrieve loiter time information
+getTimeLoiter <- function(k,frame) {
+  clusList <- seqle(which(frame$clus==k))
+  if (clusList$lengths %>% length() > 1) {
+    idx <- to_vec(for (i in 1:length(clusList$lengths)) {
+      seq(from=clusList$values[i], 
+          to=clusList$values[i] + clusList$lengths[i])
+    })
+    clusDT <- data.table(
+      # Time interval column where the traveler is in cluster k
+      time=frame[idx,timeInt],
+      
+      # Artificial label each instance in cluster k
+      instance=rep(1:length(clusList$values),times=clusList$lengths + 1))
+    
+    timeLoiterDT <- clusDT[time <= 15*60,.(`Time Loitering`=sum(time,na.rm=TRUE)),by=instance] 
+    times <- timeLoiterDT[,`Time Loitering`]
+    return(c(times %>% mean(),
+             length(clusList$lengths),
+             round(mean(clusList$lengths))))
+  } else {return(c(NA,NA,NA))}
+}
+
+
+processResults <- function(frame,resVector,minLoiterTime,minVisCount,clusterColumnName) {
+  
+  # Set the cluster labels
+  frame[,"clusVec" := resVector]
+  
+  # Initialize data.table to store loiter info
+  loiterDT <- data.table(clusVec=unique(frame[clusVec!=0,clusVec])) %>% 
+    cbind(t(sapply(unique(frame[clusVec!=0,clusVec]),getTimeLoiter,frame))) %>% na.omit()
+  setnames(loiterDT,c("V1","V2","V3"),c("avgLoiterTime","Visit Count","Avg Activity per Visit"))
+  
+  # Remove clusters with only one visit
+  frame[,"clusVec" := ifelse(clusVec %in% loiterDT$clusVec,clusVec,0)]
+  
+  # Check number of visits
+  toRemove <- loiterDT[`Visit Count` < minVisCount,clusVec]
+  frame[,"clusVec" := ifelse(clusVec %in% toRemove,0,clusVec)]
+  loiterDT <- loiterDT[`Visit Count` >= minVisCount]
+  
+  # Check loiter times
+  toRemove <- loiterDT[avgLoiterTime < minLoiterTime,clusVec]
+  frame[,"clusVec" := ifelse(clusVec %in% toRemove,0,clusVec)]
+  loiterDT <- loiterDT[avgLoiterTime >= minLoiterTime]
+  
+  # Relabel column explicitly (for flexibility in case frame has more than one column of cluster labels)
+  frame[[clusterColumnName]] <- frame[,clusVec]
+  
+  return(list("frame"=frame[,-"clusVec"],
+              "loiterDT"=frame[clusVec!=0,.(count=.N),by=clusVec] %>% 
+                merge(loiterDT,by="clusVec")))
+}
+
+# Function to generate radial heatmap
+radHeat <- function(fr) {
+  countDT <- fr[,.(Activity=.N),by=c("Hour","Weekday")]
+  ggplot(fr,aes(x=Hour,y=Weekday)) + 
+    geom_tile(data=countDT,aes(fill=Activity)) + 
+    coord_polar() 
+}
