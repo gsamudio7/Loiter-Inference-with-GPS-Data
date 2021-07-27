@@ -53,7 +53,6 @@ library(sp)
 library(rgeos)
 library(rgdal)
 library(geosphere)
-library(geohashTools)
 library(geodist)
 library(htmltools)
 library(leaflet)
@@ -632,7 +631,7 @@ resultMap
 ```
 
 # Conclusion
-This tutorial demonstrates a method to extract actionable information from GPS data. A heatmap, or geohash density map can provide initial intuition about the subject's most frequented locations, but more granular information is typically necessary. Viewing the plot above, an analyst can become overwhelmed while attempting to find meaningful conclusions from only viewing the observations. Once we conduct a spatial and temporal clustering, we can elicit reliable information about when, where, and for how long the subject (here, the wolf of interest) loiters.
+This tutorial demonstrates a method to extract actionable information from GPS data. A heatmap, or hexagon bin density map can provide initial intuition about the subject's most frequented locations, but more granular information is typically necessary. Viewing the plot above, an analyst can become overwhelmed while attempting to find meaningful conclusions from only viewing the observations. Once we conduct a spatial and temporal clustering, we can elicit reliable information about when, where, and for how long the subject (here, the wolf of interest) loiters.
 
 # Works Cited 
 

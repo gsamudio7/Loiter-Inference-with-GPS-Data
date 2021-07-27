@@ -93,20 +93,21 @@ resultMap <- baseLeaf(groups2hide=c("Observations",processed_dt[,unique(group)] 
   
   plotHDBSCAN(frame=processed_dt[clus!="0",c("lon","lat","clus","group","Hour","Weekday")],
               loiterData=loiterData,
-              colPal="Blues") %>%
+              colPal="Oranges") %>%
   
   plotH3(pts=processed_dt[,c("lon","lat")],
          h3Resolution=8,
          groupName="Observations",
-         colPal="inferno",
-         reverseColorPalette=FALSE,
+         colPal="Blues",
+         reverseColorPalette=TRUE,
          H3_labels=FALSE)
 
 save(resultMap, file="products/resultMap.RData")
 
+load("products/resultMap.RData")
 
-
-
+# Save as html
+htmlwidgets::saveWidget(resultMap,file="products/resultMap.html")
 
 
 
