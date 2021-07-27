@@ -96,41 +96,41 @@ plotHDB <- function(map,frame,loiterData,colPal) {
   # Plot every cluster
   for (k in frame[,unique(clusVec)]) {
     
-    # Generate spatial polygons for each cluster
-    toPlot <- suppressWarnings(
-      frame[clusVec==k,c(1,2)] %>% 
-        SpatialPoints() %>%
-        gConvexHull()
-    )
-    if (class(toPlot) != "SpatialPoints" & class(toPlot) != "SpatialLines") {
+    # Generate sf object for each cluster
+    toPlot <- frame[clusVec==k,c("lon","lat")] %>% as.matrix() %>%
+      sf::st_multipoint() %>%
+      sf::st_convex_hull()
       
-      # Plot polygon on map
-      for (g in unique(frame[clusVec==k,group])) {
-        map <- map %>%
-          addPolygons(data = toPlot,weight=2,opacity=1, fillOpacity=0.6,
-                      color = loiterData[clusVec==k,avgLoiterTime] %>% pal(),
-                      group = g,
-                      highlightOptions = highlightOptions(color="white", 
-                                                          weight=2.5,
-                                                          bringToFront=TRUE),
-                      popup = leafpop::popupGraph(radHeat(frame[clusVec==k,c("Hour","Weekday")])),
-                      label = HTML(paste0("<b>Avg Loiter Time: </b>",
-                                          round(loiterData[clusVec==k,avgLoiterTime]) %>%
-                                            seconds_to_period(),"<br>",
-                                          "<b>Avg Activity per Visit: </b>",
-                                          loiterData[clusVec==k,`Avg Activity per Visit`],"<br>",
-                                          "<b>Visit Count: </b>",
-                                          loiterData[clusVec==k,`Visit Count`],"<br>",
-                                          "<b>Obs Count: </b>",
-                                          loiterData[clusVec==k,count],"<br>",
-                                          "<b>Data Proportion: </b>",
-                                          round(loiterData[clusVec==k,count]/m,3))),
-                      labelOptions = labelOptions(opacity=0.85,
-                                                  style=list("background-color"="#333",
-                                                             "color"="#FFF"))
-          )
-      }
-    } 
+    centroid <- toPlot %>% sf::st_centroid() %>% sf::st_coordinates()
+    centroid_mgrs <- mgrs::latlng_to_mgrs(longitude=centroid[,1],
+                                          latitude=centroid[,2])
+    # Plot polygon on map
+    for (g in unique(frame[clusVec==k,group])) {
+      map <- map %>%
+        addPolygons(data = toPlot,weight=2,opacity=1, fillOpacity=0.6,
+                    color = loiterData[clusVec==k,avgLoiterTime] %>% pal(),
+                    group = g,
+                    highlightOptions = highlightOptions(color="white", 
+                                                        weight=2.5,
+                                                        bringToFront=TRUE),
+                    popup = leafpop::popupGraph(radHeat(frame[clusVec==k,c("Hour","Weekday")])),
+                    label = HTML(paste0("<b>MGRS: </b>", centroid_mgrs,
+                                        "<br><b>Avg Loiter Time: </b>",
+                                        round(loiterData[clusVec==k,avgLoiterTime]) %>%
+                                          seconds_to_period(),"<br>",
+                                        "<b>Avg Activity per Visit: </b>",
+                                        loiterData[clusVec==k,`Avg Activity per Visit`],"<br>",
+                                        "<b>Visit Count: </b>",
+                                        loiterData[clusVec==k,`Visit Count`],"<br>",
+                                        "<b>Obs Count: </b>",
+                                        loiterData[clusVec==k,count],"<br>",
+                                        "<b>Data Proportion: </b>",
+                                        round(loiterData[clusVec==k,count]/m,3))),
+                    labelOptions = labelOptions(opacity=0.85,
+                                                style=list("background-color"="#333",
+                                                           "color"="#FFF"))
+        )
+    }
   }
   return(map %>% clearBounds())
 }
@@ -147,7 +147,7 @@ resultMap <- baseLeaf(groups2hide=c("Observations",processed_dt[,unique(group)] 
           colPal="Blues") %>%
   
   plotH3(pts=processed_dt[,c("lon","lat")],
-         h3Resolution=12,
+         h3Resolution=8,
          groupName="Observations",
          colPal="inferno",
          reverseColorPalette=FALSE,
