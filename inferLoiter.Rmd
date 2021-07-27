@@ -690,7 +690,9 @@ plotHDB <- function(map,frame,loiterData,colPal) {
                                         loiterData[clusVec==k,count],"<br>",
                                         "<b>Data Proportion: </b>",
                                         round(loiterData[clusVec==k,count]/m,3))),
-                            labelOptions = labelOptions(opacity=0.85)
+                   labelOptions = labelOptions(opacity=0.85,
+                                               style=list("background-color"="#333",
+                                                          "color"="#FFF"))
         )
       }
     } 
@@ -705,18 +707,23 @@ The map below conveys the results of clustering spatially and temporally using H
 
 ```{r plotRes, cache=TRUE, echo=FALSE, fig.cap="",out.height=600}
 numGroups <- processed_dt[,uniqueN(group)]
-baseLeaf(groups2hide=c("Observations",processed_dt[,unique(group)] %>% 
+resultMap <- baseLeaf(groups2hide=c("Observations",processed_dt[,unique(group)] %>% 
                        sort() %>% 
                        tail(numGroups - 1) %>% as.character()),
         overGroups=c("Observations",processed_dt[,unique(group)] %>% sort() %>% as.character())) %>%
+  
   plotHDB(frame=processed_dt[clus!="0",c("lon","lat","clus","group","Hour","Weekday")],
           loiterData=loiterData,
-          colPal="Blues")# %>%
-  # plotGeohash(pts = dt[,c("lon","lat")],
-  #             geohashPrecision = 7,
-  #             groupName = "Observations",
-  #             colPal="Reds")
+          colPal="Blues") %>%
 
+  plotH3(pts=processed_dt[,c("lon","lat")],
+         h3Resolution=12,
+         groupName="Observations",
+         colPal="inferno",
+         reverseColorPalette=FALSE,
+         H3_labels=FALSE)
+
+saveWidget(resultMap, file="products/resultMap.html")
 ```
 
 # Conclusion

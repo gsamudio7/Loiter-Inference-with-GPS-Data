@@ -114,10 +114,13 @@ hexFrame_2_sf = function(hexFrame) {
   return(st_as_sf(hexFrame, bdry$geometry))
 }
 
+h3_to_mgrs <- function(H3_vector) {
+  latlng_matrix <- H3_vector %>% h3::h3_to_geo() 
+  return(Vectorize(mgrs::latlng_to_mgrs)(latlng_matrix[,1],latlng_matrix[,2]))
+}
 
 
-
-plotH3 <- function(map,pts,h3Resolution,groupName,colPal,H3_labels=TRUE) {
+plotH3 <- function(map,pts,h3Resolution,groupName,colPal,reverseColorPalette=TRUE,H3_labels=TRUE) {
   
   # Set H3 column
   pts[,"H3" := geo_to_h3(pts[,c("lat","lon")],res=h3Resolution)]
@@ -129,16 +132,16 @@ plotH3 <- function(map,pts,h3Resolution,groupName,colPal,H3_labels=TRUE) {
   # Set labels
   if (H3_labels==TRUE) {
     labels = sprintf(
-      "<b>H3 Index:</b> %s<br>
+      "<b>MGRS:</b> %s<br>
        <b>Obs Count:</b> %s<br>
        <b>Data Proportion:</b> %s",
-      hexFrame$H3, hexFrame$count, hexFrame$count/m) %>% lapply(htmltools::HTML)
+      hexFrame$H3 %>% h3_to_mgrs, hexFrame$count, round(hexFrame$count/m,3)) %>% lapply(htmltools::HTML)
   } else {
     labels=NULL
   }
   
   # Set color palette
-  pal <- colorNumeric(palette=colPal,reverse=TRUE,
+  pal <- colorNumeric(palette=colPal,reverse=reverseColorPalette,
                       domain=log10(hexFrame$count))
   
   # Map it
@@ -153,6 +156,9 @@ plotH3 <- function(map,pts,h3Resolution,groupName,colPal,H3_labels=TRUE) {
                fillOpacity = 0.7,
                bringToFront = TRUE),
              label=labels,
+             labelOptions = labelOptions(opacity=0.85,
+                                         style=list("background-color"="#333",
+                                                    "color"="#FFF")),
              group = groupName
            ) %>% 
            addLegend(position="bottomright",

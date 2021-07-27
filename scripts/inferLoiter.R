@@ -26,6 +26,8 @@ library(utils)
 library(reticulate)
 library(base64enc)
 library(h3)
+library(mgrs)
+
 use_python("/Users/developer/opt/anaconda3/bin/python", required=TRUE)
 source_python("scripts/supportFunctions.py")
 
