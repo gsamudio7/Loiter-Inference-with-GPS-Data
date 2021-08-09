@@ -1,5 +1,6 @@
 
 # Imports ####
+rm(list=ls())
 library(data.table)
 library(bigmemory)
 library(DT)
@@ -27,8 +28,9 @@ library(reticulate)
 library(base64enc)
 library(h3)
 library(mgrs)
-
+Sys.setenv(RETICULATE_PYTHON = "/Users/developer/opt/anaconda3/bin/python")
 use_python("/Users/developer/opt/anaconda3/bin/python", required=TRUE)
+#use_python("/Users/developer/opt/anaconda3/envs/my_conda/bin/python",required=TRUE)
 source_python("scripts/supportFunctions.py")
 
 # Read in defined support functions
@@ -60,7 +62,9 @@ wolf.of.Interest <- data[,.(count=.N),by="cid"][count==max(count)]$cid
 dt <- data[cid==wolf.of.Interest]
 
 # Plot H3 density map of wolf population and wolf of interest
-initMap <- baseLeaf(overGroups=c("Wolf Population","Wolf of Interest")) %>%
+initMap <- baseLeaf(pts=data[,c("lon","lat")],
+                    initZoom=4,
+                    overGroups=c("Wolf Population","Wolf of Interest")) %>%
   
   plotH3(pts=data[,c("lon","lat")],
          h3Resolution=8,
