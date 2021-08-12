@@ -2,6 +2,7 @@
 baseLeaf <- function(
   pts,
   initZoom,
+  miniMapOffset=-5,
   logoLocation="https://github.com/gsamudio7/Loiter-Inference-with-GPS-Data/blob/main/assets/images/NGATitle.png?raw=true",
   logoSource="remote",
   logoWidth=350,logoHeight=60,
@@ -52,7 +53,7 @@ baseLeaf <- function(
       setView(lng=mean(pts$lon),lat=mean(pts$lat),zoom=initZoom) %>%
       addMiniMap(
         tiles='Esri.WorldImagery',
-        zoomLevelOffset = -5,
+        zoomLevelOffset = miniMapOffset,
         toggleDisplay = TRUE,
         position="bottomleft") %>%
       addLayersControl(
@@ -362,7 +363,11 @@ activity_heat <- function(fr) {
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1,color="#FFFFFF"),
           axis.text.y = element_text(color="#FFFFFF"),
           axis.title = element_text(color="#FFFFFF"),
-          plot.background = element_rect(fill = "#333333"))
+          plot.background = element_rect(fill = "#333333"),
+          panel.background = element_rect(fill = "#333333"),
+          legend.background = element_rect(fill = "#333333"),
+          legend.text = element_text(color="#FFFFFF"),
+          legend.title = element_text(color="#FFFFFF"))
 }
 
 
@@ -414,5 +419,12 @@ plotHDBSCAN <- function(map,frame,loiterData,colPal) {
         )
     }
   }
-  return(map %>% clearBounds())
+  return(map %>% 
+           addLegend(position="bottomright",
+                     pal=pal,opacity=8,
+                     values=loiterData[,avgLoiterTime],
+                     labFormat=labelFormat(transform = function(x) {round(x) %>%
+                         seconds_to_period()}),
+                     title="<b>Avg Loiter Time</b>") %>%
+           clearBounds())
 }

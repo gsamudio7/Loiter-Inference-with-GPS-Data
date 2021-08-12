@@ -4,6 +4,10 @@ author: "[MAJ Gabe Samudio](mailto:gsamudio7@gmail.com)"
 date: "`r format(Sys.time(), '%d %B %Y')`"
 output:
   html_document:
+    includes:
+      before_body: assets/header.html
+      in_header: assets/fav.html
+      after_body: assets/header.html
     css: assets/css/html_report.css
     highlight: haddock
     self_contained: yes
@@ -24,8 +28,13 @@ bibliography:
 }
 
 #TOC {
+  margin-top: 40px;
+  background: url("https://github.com/gsamudio7/Loiter-Inference-with-GPS-Data/blob/main/assets/images/logo800.png?raw=true");
+  background-size: contain;
+  padding-top: 110px !important;
+  background-repeat: no-repeat;
   border: None;
-  margin-top: 10.5px;
+  width: 1;
 }
 
 </style>
@@ -625,7 +634,7 @@ resultMap <- baseLeaf(groups2hide=c("Observations",processed_dt[,unique(group)] 
 save(resultMap, file="products/resultMap.RData")
 ```
 
-```{r plotResultMap, echo=FALSE, fig.cap="",out.height=600}
+```{r plotResultMap, echo=FALSE, fig.cap="",out.height=700}
 load("products/resultMap.RData")
 resultMap
 ```
