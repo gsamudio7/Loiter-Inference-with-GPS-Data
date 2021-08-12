@@ -28,9 +28,16 @@ library(reticulate)
 library(base64enc)
 library(h3)
 library(mgrs)
-Sys.setenv(RETICULATE_PYTHON = "/Users/developer/opt/anaconda3/bin/python")
-use_python("/Users/developer/opt/anaconda3/bin/python", required=TRUE)
-#use_python("/Users/developer/opt/anaconda3/envs/my_conda/bin/python",required=TRUE)
+
+# On laptop:
+# Sys.setenv(RETICULATE_PYTHON = "/Users/developer/opt/anaconda3/bin/python")
+# use_python("/Users/developer/opt/anaconda3/bin/python", required=TRUE)
+
+# On desktop:
+Sys.setenv(RETICULATE_PYTHON = "/Users/gms/opt/anaconda3/bin/python")
+use_python("/Users/gms/opt/anaconda3/bin/python", required=TRUE)
+
+# Source python functions
 source_python("scripts/supportFunctions.py")
 
 # Read in defined support functions
@@ -89,8 +96,62 @@ initMap
 # Read in processed data
 load("products/loiterData.RData")
 
+# Debugging plotHDBSCAN function
+plotHDBSCAN <- function(map,frame,loiterData,colPal) {
+  
+  # Organize parameters
+  m <- dim(frame)[1]
+  frame$clusVec <- frame[[3]]
+  pal <- colorNumeric(palette=colPal,reverse=TRUE,
+                      domain=loiterData[,avgLoiterTime])
+  
+  # Plot every cluster
+  for (k in frame[,unique(clusVec)]) {
+    
+    # Generate sf object for each cluster
+    toPlot <- frame[clusVec==k,c("lon","lat")] %>% as.matrix() %>%
+      sf::st_multipoint() %>%
+      sf::st_convex_hull()
+    
+    centroid <- toPlot %>% sf::st_centroid() %>% sf::st_coordinates()
+    centroid_mgrs <- mgrs::latlng_to_mgrs(longitude=centroid[,1],
+                                          latitude=centroid[,2])
+    # Plot polygon on map
+    for (g in unique(frame[clusVec==k,group])) {
+      map <- map %>%
+        addPolygons(data = toPlot,weight=2,opacity=1, fillOpacity=0.6,
+                    color = loiterData[clusVec==k,avgLoiterTime] %>% pal(),
+                    group = g,
+                    highlightOptions = highlightOptions(color="white", 
+                                                        weight=2.5,
+                                                        bringToFront=TRUE),
+                    # popup = leafpop::popupGraph(
+                    #   activity_heat(fr=frame[clusVec==k,c("Hour","Weekday")])),
+                    label = HTML(paste0("<b>MGRS: </b>", centroid_mgrs,
+                                        "<br><b>Avg Loiter Time: </b>",
+                                        round(loiterData[clusVec==k,avgLoiterTime]) %>%
+                                          seconds_to_period(),"<br>",
+                                        "<b>Avg Activity per Visit: </b>",
+                                        loiterData[clusVec==k,`Avg Activity per Visit`],"<br>",
+                                        "<b>Visit Count: </b>",
+                                        loiterData[clusVec==k,`Visit Count`],"<br>",
+                                        "<b>Obs Count: </b>",
+                                        loiterData[clusVec==k,count],"<br>",
+                                        "<b>Data Proportion: </b>",
+                                        round(loiterData[clusVec==k,count]/m,3))),
+                    labelOptions = labelOptions(opacity=0.85,
+                                                style=list("background-color"="#333",
+                                                           "color"="#FFF"))
+        )
+    }
+  }
+  return(map %>% clearBounds())
+}
+
 numGroups <- processed_dt[,uniqueN(group)]
-resultMap <- baseLeaf(groups2hide=c(processed_dt[,unique(group)] %>% 
+resultMap <- baseLeaf(pts=processed_dt[,c("lon","lat")],
+                      initZoom = 9,
+                      groups2hide=c(processed_dt[,unique(group)] %>% 
                                       sort() %>% 
                                       tail(numGroups - 1) %>% as.character()),
                       overGroups=c("Observations",processed_dt[,unique(group)] %>% 
