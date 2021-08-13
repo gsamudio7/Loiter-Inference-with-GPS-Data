@@ -120,13 +120,13 @@ initMap
 
 # Case Study Data 
 - Overview
-    - Locations and time of collection of 46 wolves between <b>March 17, 2012</b> to <b>September 13, 2014</b>. 
+    - Locations and time of collection of 46 wolves between <b>March 17, 2012</b> to <b>September 13, 2014</b>
     - Derived from a Movebank study on grey wolves in northeastern Alberta's Athabasca Oil Sands Region, available [here](https://www.movebank.org/cms/webapp?gwt_fragment=page=studies,path=study492444603)
 - Original primary study areas: 
     - Habitat use and selection [@boutin_wildlife_2015]
     - Predator-prey dynamics [@neilson_human_2017]
     - Effects of human activity [@boutin_wildlife_2015]; [@neilson_human_2017]
-    - Responses to snow conditions [@droghini_calm_2018].
+    - Responses to snow conditions [@droghini_calm_2018]
 - Exploratory Data Analysis
     - Gain understanding for data limitations
     - Investigate collection bias
@@ -267,8 +267,8 @@ head(dt_init) %>% formattable(align="l") %>% as.htmlwidget()
     - Weekday and hour
     - Time between observations
 - Findings:
-    - There is significant evidence of collection of month and year bias.
-    - Not significant evidence of weekday or time-of-day bias. 
+    - There is significant evidence of collection of month and year bias
+    - Not significant evidence of weekday or time-of-day bias
     - Most observations occur every 10 minutes
     
 <br>
@@ -286,8 +286,8 @@ daily_volume
 <br>
 
 ### Take aways:
-- Three spikes in collection volume in April 2012, March 2013, and January to March 2014.
-- No observations between May 2012 and March 2013, which can drastically skew the interobservation time distribution. 
+- Three spikes in collection volume in April 2012, March 2013, and January to March 2014
+- No observations between May 2012 and March 2013, which can drastically skew the interobservation time distribution
 - Inferred loiter locations are likely year/season dependent
 
 
@@ -304,8 +304,8 @@ weekday_and_hour_volume
 ```
 
 ### Take aways:
-- Generally uniform across all weekdays and time of days. 
-- Further analysis is required to determine the statistical significance of how far this data departs from a bivariate uniform distribution. That analysis is omitted in this study, and we assume the data is generally free of hourly and weekday bias.
+- Generally uniform across all weekdays and time of days
+- Further analysis required to determine the statistical significance of how far this data departs from a bivariate uniform distribution
 
 <br>
 
@@ -337,18 +337,19 @@ inter_obs_time
 
 ## Optimal Parameter Values 
 - Allow data to inform spatial and temporal $cluster\_selection\_epsilon$ parameters for HDBSCAN
-    - The minimum distance considered in evaluating cluster densities, and allow us to group together clusters within this distance [@campello_hierarchical_2015]. 
-    - This parameter prevents the algorithm from incorrectly labeling cluster boundary points as outliers when the cluster has a relatively high density. 
-    - More information about this parameter is available [here](https://hdbscan.readthedocs.io/en/latest/how_to_use_epsilon.html). 
+    - The minimum distance considered in evaluating cluster densities
+    - Allows us to group together clusters within this distance [@campello_hierarchical_2015]
+    - This parameter prevents the algorithm from incorrectly labeling cluster boundary points as outliers 
+    - More information about this parameter is available [here](https://hdbscan.readthedocs.io/en/latest/how_to_use_epsilon.html)
 - Find the distance that separates low from high distances
-    - Compute the distance to each observation's nearest neighbor, 
+    - Compute the distance to each observation's nearest neighbor
     - Sorting these distances
-    - Find the distance where the increase in nearest neighbor distance is the most dramatic [rahmah_determination_2016]. 
+    - Find the distance where the increase in nearest neighbor distance is the most dramatic [rahmah_determination_2016]
     - More details about this method are discussed [here](https://iopscience.iop.org/article/10.1088/1755-1315/31/1/012012/pdf)
-    - Tutorial for how to implement this method in Python is available [here](https://towardsdatascience.com/machine-learning-clustering-dbscan-determine-the-optimal-value-for-epsilon-eps-python-example-3100091cfbc). 
+    - Tutorial for how to implement this method in Python is available [here](https://towardsdatascience.com/machine-learning-clustering-dbscan-determine-the-optimal-value-for-epsilon-eps-python-example-3100091cfbc)
 
 ### Find kneedle function
-We define the Python function below to calculate the max cuvature of a line plot. We use it by setting the x-axis as the **order** vector and the y-axis as the **distances** vector, which produces a convex increasing curve. The y-value for the knee in the curve is the optimal parameter value for $cluster\_selection\_epsilon$.
+We define the Python function below to calculate the max curvature of a line plot. We use it by setting the x-axis as the **order** vector and the y-axis as the **distances** vector, which produces a convex increasing curve. The y-value for the knee in the curve is the optimal parameter value for $cluster\_selection\_epsilon$.
 
 ```{python findKneefunc, eval=FALSE}
 from kneed import KneeLocator
@@ -416,8 +417,8 @@ spatial_epsilon
 ```
 
 ### Take aways:
-- ~200 meters is the distance just before the nearest neighbor distances rapidly increase. 
-- Store this value as **epsSpat** as a HDBSCAN parameter.
+- ~200 meters is the distance just before the nearest neighbor distances rapidly increase
+- Store this value as **epsSpat** as a HDBSCAN parameter
 
 ### Epsilon Temporal Distance
 We now apply the same method to get the optimal temporal epsilon distance.
@@ -471,13 +472,13 @@ temporal_epsilon
 ```
 
 ### Take aways:
-- Optimal temporal epsilon distance is 12 seconds. 
-- Even though the inter-observation times are mostly between 10 to 15 minutes, the differences in the time of day between observations are much closer. We store this value as **epsTime** for use later.
+- Optimal temporal epsilon distance is 12 seconds 
+- Even though the inter-observation times are mostly between 10 to 15 minutes, the differences in the time of day between observations are much closer. We store this value as **epsTime** for use later
 
 ## Application 
 - Define python function to implement HDBSCAN, using [Python's sklearn HDBSCAN algorithm](https://hdbscan.readthedocs.io/en/latest/basic_hdbscan.html) [@mcinnes_hdbscan_nodate]
 - Spatial cluster using the haversine distance 
-- Temporal cluster with a pre-computed time distance matrix.
+- Temporal cluster with a pre-computed time distance matrix
 
 ### Python Function
 ```{python HDBfunc, eval=FALSE}
@@ -521,11 +522,12 @@ def runHDB(points,minClusterSize,epsDist,minSampleSize=None,distMatrix=None,verb
 ```
 
 ### Cluster Workflow
-- Apply HDBSCAN with the data-informed parameters for $cluster\_selection\_epsilon$ to find spatial clusters, then again on each spatial clusters to find temporal limits to those clusters. 
-- We use the minimum allowable cluster size of 2 to minimize how "smooth" the cluster density estimate is between nearby points. 
-    - Mitigates HDBSCAN's tendency to identify overlapping clusters [@noauthor_outlier_nodate]. 
-- Use a high minimum sample size to discriminate noisy points from cluster boundary points. 
-- This method for using minimum cluster size and minimum sample size is discussed in greater detail [here](https://github.com/scikit-learn-contrib/hdbscan/issues/116) [@noauthor_outlier_nodate].
+- Apply HDBSCAN with the data-informed parameters for $cluster\_selection\_epsilon$ to find spatial clusters
+- Apply HDBSCAN again on each spatial clusters to find space-time clusters
+- Use the minimum allowable cluster size of 2 to minimize how "smooth" the cluster density estimate is between nearby points. 
+    - Mitigates HDBSCAN's tendency to identify overlapping clusters [@noauthor_outlier_nodate]
+- Use a high minimum sample size to discriminate noisy points from cluster boundary points
+- This method for using minimum cluster size and minimum sample size is discussed in greater detail [here](https://github.com/scikit-learn-contrib/hdbscan/issues/116) [@noauthor_outlier_nodate]
 
 
 ```{r initial_clusterWorkflow, eval=FALSE, fig.cap=""}
@@ -572,13 +574,13 @@ dt[,.(`Obs Count`=.N),by=clus] %>% formattable(align="l") %>%
 
 ### Take aways:
 - Some clusters only include two observations, others have above 100 observations
-    - This is a result of HDBSCAN identifying clusters of varying densities. 
+    - This is a result of HDBSCAN identifying clusters of varying densities
 - Next steps:
-    - Screen out clusters that do not include consecutive observations, as they are not temporally continuous 
+    - Screen out clusters that do not include consecutive observations 
 
 ### Screening
-- Define the following R function to find the indices of the consecutive observations (values), and the lengths of each segment of consecutive observations (lengths), 
-- We use a modified version of the R function available [here](https://github.com/cran/cgwtools/blob/master/R/seqle.r) [@noauthor_crancgwtools_nodate].
+- Define the following R function to find the indices of the consecutive observations (values), and the lengths of each segment of consecutive observations (lengths)
+- We use a modified version of the R function available [here](https://github.com/cran/cgwtools/blob/master/R/seqle.r) [@noauthor_crancgwtools_nodate]
 
 ```{r consecCountFunc, fig.cap=""}
 
