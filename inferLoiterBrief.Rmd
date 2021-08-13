@@ -1,0 +1,680 @@
+---
+title: "Loiter Inference with GPS Data"
+author: "[MAJ Gabe Samudio](mailto:gsamudio7@gmail.com)"
+date: "`r format(Sys.time(), '%d %B %Y')`"
+output:
+  html_document:
+    includes:
+      before_body: assets/header.html
+      in_header: assets/fav.html
+    css: assets/css/html_report.css
+    highlight: haddock
+    self_contained: yes
+    toc: yes
+    toc_float: yes
+    toc_depth: 2
+nocite: '@*'
+bibliography:
+- assets/bib/Rpackages.bib
+- assets/bib/pythonPackages.bib
+- assets/bib/spatTempClustering.bib
+---
+
+
+
+<style>
+#nav_logo {
+  width: 100%;
+}
+
+#TOC {
+  margin-top: 40px;
+  background: url("https://github.com/gsamudio7/Loiter-Inference-with-GPS-Data/blob/main/assets/images/skope.jpeg?raw=true");
+  background-size: contain;
+  padding-top: 110px !important;
+  background-repeat: no-repeat;
+  border: None;
+  width: 1;
+}
+
+</style>
+
+
+
+```{r setUp, include=FALSE}
+knitr::opts_chunk$set(
+  cache=FALSE,
+  message=FALSE,
+  warning=FALSE,
+  out.width="100%",
+  fig.cap=TRUE,
+  fig.align="center",
+  class.source="chunk"
+)
+
+library(data.table)
+library(bigmemory)
+library(DT)
+library(dplyr)
+library(sf)
+library(sp)
+library(rgeos)
+library(rgdal)
+library(geosphere)
+library(geodist)
+library(htmltools)
+library(leaflet)
+library(leaflet.extras)
+library(leafpop)
+library(leafem)
+library(comprehenr)
+library(lubridate)
+library(plotly)
+library(ggplot2)
+library(htmlwidgets)
+library(formattable)
+library(utils)
+library(reticulate)
+library(base64enc)
+library(h3)
+library(mgrs)
+use_python("/Users/developer/opt/anaconda3/bin/python", required=TRUE)
+source_python("scripts/supportFunctions.py")
+
+# Read in defined support functions
+source("scripts/supportFunctions.R")
+
+```
+
+
+```{r plotInit, echo=FALSE, fig.cap="",out.height=600}
+
+# Render initial map
+load("products/initMap.RData")
+initMap
+
+```
+
+##### This map shows the GPS location density for a population of Grey Wolves in northeastern Alberta’s Athabasca Oil Sands Region from early 2012 to late 2014 and highlights the location data for one wolf of interest in blue. Clearly, the wolf of interest has unique movement patterns, but how do we gain insights about this wolf's pattern of life? This tutorial demonstrates a method to extract reliable loiter information from large spatial-temporal GPS data sets.
+
+<br><br><br>
+
+# Introduction
+- Key challenge: correctly infer that an observation as moving or loitering 
+    - Main common assumption: observations close together signals potential loitering
+    
+- Common clustering techniques:
+    - Time-based [@hutchison_project_2004] and [@liu_extracting_2006]
+    - Centroid-based k-means [@ashbrook_learning_2002]
+    - Density-based: 
+        - [DBSCAN](http://www2.cs.uh.edu/~ceick/7363/Papers/dbscan.pdf) [@ester_density-based_nodate]
+        - [ST-DBSCAN](https://www.sciencedirect.com/science/article/pii/S0169023X06000218) [@birant_st-dbscan_2007]
+        - [T-DBSCAN](https://online-journals.org/index.php/i-joe/article/viewFile/3881/3315) [@chen_t-dbscan_2014]
+        - [HDBSCAN](https://www.researchgate.net/publication/315508524_hdbscan_Hierarchical_density_based_clustering) [@campello_hierarchical_2015]
+
+- Proposed Method: Hierarchical Debsity Based Spatial Clusting of Applications with Noise (HDBSCAN)
+    - Data informed parameters
+    - Spatial then temporal clusters
+
+<br>
+
+# Case Study Data 
+- Overview
+    - Locations and time of collection of 46 wolves between <b>March 17, 2012</b> to <b>September 13, 2014</b>. 
+    - Derived from a Movebank study on grey wolves in northeastern Alberta's Athabasca Oil Sands Region, available [here](https://www.movebank.org/cms/webapp?gwt_fragment=page=studies,path=study492444603)
+- Original primary study areas: 
+    - Habitat use and selection [@boutin_wildlife_2015]
+    - Predator-prey dynamics [@neilson_human_2017]
+    - Effects of human activity [@boutin_wildlife_2015]; [@neilson_human_2017]
+    - Responses to snow conditions [@droghini_calm_2018].
+- Exploratory Data Analysis
+    - Gain understanding for data limitations
+    - Investigate collection bias
+    - Define relative parameters with the data
+        - Define "close" in terms of space and time comparatively
+
+<br>
+
+## Extraction
+The computation below leverages data.table's **fread** function to read the csv and answer some preliminary exploratory questions concerning the data.
+
+```{r extraction, fig.width=15, echo=TRUE, fig.cap=""}
+
+# Leverage fread function from package data.table to quickly read in csv data as an R object.
+initData <- fread("data/ABoVE_ Boutin Alberta Grey Wolf.csv")
+
+# How many wolves?
+initData[# all rows
+         ,
+         # data.table fast unique count for the column 
+         # labeling the different wolves
+         uniqueN(`tag-local-identifier`)]
+
+# How big is the data set
+utils::object.size(initData)
+
+# What are the dimensions
+dim(initData)
+
+# View the first three rows 
+head(initData,3) %>% formattable(align="l") %>%
+  formattable::as.datatable(rownames=FALSE,
+                            options=list(
+                              searching = FALSE,
+                              scrollX = TRUE,
+                              columnDefs = list(list(className = 'dt-left', targets = '_all'))))
+```
+
+<br>
+
+## Transformation
+The raw data set has 239,194 observations on 46 wolves. We only need the following columns for our study:
+
+- study-local-timestamp
+- tag-local-identifier
+- location-long
+- location-lat
+
+The following computation extracts the data relevant to this study, and customizes the column labels for convenience.
+```{r transform, eval=FALSE}
+# Load only the relevant columns
+data <- fread("data/ABoVE_ Boutin Alberta Grey Wolf.csv",
+             select=c("study-local-timestamp",
+                     "tag-local-identifier",
+                     "location-long",
+                     "location-lat"),
+            
+             # Make sure data.table does not automatically generate factor columns
+             stringsAsFactors = FALSE) %>% 
+  
+             # Omit NAs in the data. Familiarization with how the data was collected is 
+             # necessary to consider retaining these values and making them useful
+             na.omit()
+
+# Set the column names for convenience
+setnames(data, 
+         
+         # Vector of old names that we want to change
+         old=c("study-local-timestamp",
+                     "tag-local-identifier",
+                     "location-long",
+                     "location-lat"),
+         
+         # Vector of new more convenient names
+         new=c("dtg", # date time group
+               "cid", # component ID
+               "lon", # longitude
+               "lat")) # latitude
+
+```
+
+<br>
+
+## Load
+This study focuses on making inferences about one individual, so we use one wolf as a surrogate. The computation below identifies a wolf of interest and subsets the data to only include this wolf's observations.
+
+```{r load, eval=FALSE, fig.cap=""}
+
+# Use data.table indexing to determine to wolf with the most data
+wolf.of.Interest <- data[,.(count=.N),by="cid"][count==max(count)]$cid 
+
+# Subset to focus on one wolf:
+dt_init <- data[cid==wolf.of.Interest]
+m <- nrow(dt_init )
+
+# Create datetime objects from dtg character strings
+dt_init [,"dtg" := dtg %>% as.POSIXct(format="%Y-%m-%d %H:%M:%S")]
+
+# Order the data sequentially by date time group
+setorder(dt_init,dtg)
+
+# Set inter-obs time interval column
+dt_init[,"timeInt" := dtg %>% difftime(shift(dtg),unit="secs")]
+dt_init[,"timeInt" := ifelse(timeInt <= 24*3600,timeInt,NA)]
+
+# Use lubridate package to get the weekday from the date objects
+dt_init[,"Weekday" := dtg %>% lubridate::wday(label=TRUE)]
+
+# Get the hour from the date objects
+dt_init[,"Hour" := lubridate::hour(dtg)]
+dt_init$Hour <- dt_init$Hour %>% Vectorize(military_time)() %>% factor(levels=Vectorize(military_time)(0:23))
+
+# Get the time of day for each dtg
+dt_init[,"time" := as.ITime(dtg)]
+
+# Set group time label (for plotting)
+dt_init$group <- cut(dt_init$time,
+                breaks=c(0,6*3600,9*3600,12*3600,
+                         15*3600,18*3600,21*3600,24*3600),
+                labels=c("0000 - 0600","0600 - 0900","0900 - 1200",
+                         "1200 - 1500","1500 - 1800","1800 - 2100",
+                         "2100 - 2400"))
+
+save(dt_init,file="products/dt_init.RData")
+```
+
+```{r load_quickLook, echo=FALSE, fig.cap=""}
+# Quick look
+load("products/dt_init.RData")
+head(dt_init) %>% formattable(align="l") %>% as.htmlwidget()
+```
+
+<br>
+
+# Collection Analysis 
+- Measure the degree of temporal collection bias.
+    - Month and year
+    - Weekday and hour
+    - Time between observations
+- Findings:
+    - There is significant evidence of collection of month and year bias.
+    - Not significant evidence of weekday or time-of-day bias. 
+    - Most observations occur every 10 minutes
+    
+<br>
+
+## Volume by Date 
+Next we check the collection volume over the time range of the data to judge the collection bias with respect to each day of the study. 
+
+<br>
+
+```{r collectionAnalysis2, echo=FALSE,fig.cap="<b>Figure 2: </b>Collection Volume over Time"}
+load("products/daily_volume.RData")
+daily_volume
+```
+
+<br>
+
+### Take aways:
+- Three spikes in collection volume in April 2012, March 2013, and January to March 2014.
+- No observations between May 2012 and March 2013, which can drastically skew the interobservation time distribution. 
+- Inferred loiter locations are likely year/season dependent
+
+
+<br>
+
+## Volume by Weekday and Hour
+We manipulate the data and generate a bivariate heatmap to study the the collection volume on every weekday, for each hour of the day.
+
+<br>
+
+```{r collectionAnalysis,echo=FALSE,fig.cap="<b>Figure 1: </b>Collection Volume by Hour and Weekday"}
+load("products/weekday_and_hour_volume.RData")
+weekday_and_hour_volume
+```
+
+### Take aways:
+- Generally uniform across all weekdays and time of days. 
+- Further analysis is required to determine the statistical significance of how far this data departs from a bivariate uniform distribution. That analysis is omitted in this study, and we assume the data is generally free of hourly and weekday bias.
+
+<br>
+
+## Inter-observation Time
+The wolf's activity between his observations is unknown, which can skew our results. We need to study the time between recorded observations to judge how well the data represents the wolf's locations.
+
+<br>
+
+```{r dataProcess, echo=FALSE,fig.cap="<b>Figure 3: </b>Inter-observation Time Histogram"}
+load("products/inter_obs_time.RData")
+inter_obs_time
+```
+
+<br>
+
+### Take aways:
+- 95% of the inter-observation times are less than 15 minutes
+    - loiter locations with a dwell time of one hour may have as few as four observations 
+
+<br>
+
+# Spatial-Temporal Clustering 
+- Analytic method:
+    - Identify spacial clusters with HDBSCAN
+    - Identify temporal clusters within each spatial cluster
+    - Process and disseminate results
+
+<br>
+
+## Optimal Parameter Values 
+- Allow data to inform spatial and temporal $cluster\_selection\_epsilon$ parameters for HDBSCAN
+    - The minimum distance considered in evaluating cluster densities, and allow us to group together clusters within this distance [@campello_hierarchical_2015]. 
+    - This parameter prevents the algorithm from incorrectly labeling cluster boundary points as outliers when the cluster has a relatively high density. 
+    - More information about this parameter is available [here](https://hdbscan.readthedocs.io/en/latest/how_to_use_epsilon.html). 
+- Find the distance that separates low from high distances
+    - Compute the distance to each observation's nearest neighbor, 
+    - Sorting these distances
+    - Find the distance where the increase in nearest neighbor distance is the most dramatic [rahmah_determination_2016]. 
+    - More details about this method are discussed [here](https://iopscience.iop.org/article/10.1088/1755-1315/31/1/012012/pdf)
+    - Tutorial for how to implement this method in Python is available [here](https://towardsdatascience.com/machine-learning-clustering-dbscan-determine-the-optimal-value-for-epsilon-eps-python-example-3100091cfbc). 
+
+### Find kneedle function
+We define the Python function below to calculate the max cuvature of a line plot. We use it by setting the x-axis as the **order** vector and the y-axis as the **distances** vector, which produces a convex increasing curve. The y-value for the knee in the curve is the optimal parameter value for $cluster\_selection\_epsilon$.
+
+```{python findKneefunc, eval=FALSE}
+from kneed import KneeLocator
+
+def findKnee(order,distances,smoothParam,interpMethod='polynomial'):
+    kneedle = KneeLocator(order,
+                          distances,
+                          S=smoothParam,
+                          interp_method=interpMethod,
+                          curve='convex',
+                          direction='increasing',
+                          online=True)
+    return kneedle.knee_y
+```
+
+
+### Epsilon Spatial Distance
+As described [here](https://towardsdatascience.com/machine-learning-clustering-dbscan-determine-the-optimal-value-for-epsilon-eps-python-example-3100091cfbc), we first calculate the spatial distance to the nearest neighbor for each observation and sort these values. We then find the maximum curvature, and plot the results.
+
+<br>
+
+```{r epsSpatialDist, echo=FALSE,fig.cap="<b>Figure 4: </b>Sorted Nearest Neighbor Spatial Distance (meters)"}
+
+# # Compute all pairwise haversine distances (meters)
+# distances <- geodist::geodist(dt[,c("lon","lat")],measure="haversine") 
+# 
+# # Get the distances for the nearest neighbors and sort
+# distances[distances==0] <- Inf
+# distVec <- apply(distances,2,min) %>% sort()
+# 
+# # Create data.table for plot
+# forPlot <- data.table(
+#             "dist"=distVec,
+#             "order"=distVec %>% length() %>% seq())
+# 
+# # Find the max curvature
+# epsSpat <- findKnee(order=forPlot[,order],
+#                     distances=distVec,
+#                     smoothParam=10.0)
+# save(epsSpat,file="products/epsSpat.RData")
+#
+# # Plot 
+# tikVals <- forPlot[,dist] %>% quantile((0:7)/7) %>% round()
+# spatial_epsilon <- plot_ly(x=forPlot[order > which(log10(distVec) <= 0) %>% max(),order],
+#         y=forPlot[order > which(log10(distVec) <= 0) %>% max(),dist] %>% log10(),
+#         type="scatter",
+#         mode="lines",color=I("black")) %>%
+#   layout(title="<b>Nearest Neighbor Sorted Distances (meters)</b>",
+#          xaxis = list(title="Sorted Order by Distance (increasing)"),
+#          yaxis = list(title="Distance in meters",
+#                       tickvals = tikVals %>% log10(),
+#                       ticktext = tikVals),
+#          shapes = list(type ="line",
+#                        line = list(color="#990000"),
+#                        x0 = 0, x1 = which(distVec==epsSpat),
+#                        y0 = log10(epsSpat), y1 = log10(epsSpat)),
+#          annotations = list(text = paste("<b>Epsilon Spatial Distance: </b>\n",
+#                                          round(epsSpat,2),"meters"),
+#                             x = 12000, y = log10(epsSpat), showarrow=FALSE)) %>% plotly_build()
+# 
+# save(spatial_epsilon,file="products/spatial_epsilon.RData")
+load("products/spatial_epsilon.RData")
+spatial_epsilon
+
+```
+
+### Take aways:
+- ~200 meters is the distance just before the nearest neighbor distances rapidly increase. 
+- Store this value as **epsSpat** as a HDBSCAN parameter.
+
+### Epsilon Temporal Distance
+We now apply the same method to get the optimal temporal epsilon distance.
+
+<br>
+
+```{r epsTimeDist, echo=FALSE, fig.cap="<b>Figure 5: </b>Sorted Nearest Neighbor Temporal Distance (seconds)"}
+
+# # Compute all pair wise time intervals
+# timeDistMat <- outer(dt$time,dt$time,difftime,units="secs") %>% abs() 
+# 
+# # Get the time intervals for the nearest times
+# timeDistMat[timeDistMat==as.difftime(0,units="secs")] <- Inf
+# save(timeDistMat,file="products/timeDistMat.RData")
+# timeDistVec <- apply(timeDistMat,2,min) %>% sort()
+# 
+# # Create data.table for plot
+# forPlot <- data.table(
+#             "timeDist"=timeDistVec,
+#             "order"=seq(m))
+# 
+# epsTime <- findKnee(order=forPlot[,order],
+#                     distances=forPlot[,timeDist],
+#                     smoothParam=10.0)
+#
+#
+# # Plot 
+# tikVals <- forPlot[,timeDist] %>% quantile((0:100)/100) %>% round()
+# temporal_epsilon <- plot_ly(x=forPlot[order > which(timeDistVec <= 1) %>% max(),order],
+#         y=forPlot[order > which(timeDistVec <= 1) %>% max(),timeDist] %>% log10(),
+#         type="scatter",
+#         mode="lines",color=I("black")) %>%
+#   layout(title="<b>Nearest Neighbor Sorted Time Intervals (seconds)</b>",
+#          xaxis = list(title="Sorted Order by Distance (increasing)"),
+#          yaxis = list(title="Temporal Distance in seconds",
+#                       tickvals = tikVals %>% log10(),
+#                       ticktext = tikVals),
+#          shapes = list(type ="line",
+#                        line = list(color="#990000"),
+#                        x0 = which(timeDistVec <= 1) %>% max(), 
+#                        x1 = which(timeDistVec == epsTime) %>% max(),
+#                        y0 = log10(epsTime), y1 = log10(epsTime)),
+#          annotations = list(text = paste("<b>Epsilon Temporal Distance: </b>\n",epsTime,"seconds"),
+#                             x = 16000, y = log10(epsTime), showarrow=FALSE)) %>% plotly_build()
+# 
+# save(temporal_epsilon,file="products/temporal_epsilon.RData")
+load("products/temporal_epsilon.RData")
+temporal_epsilon
+
+
+```
+
+### Take aways:
+- Optimal temporal epsilon distance is 12 seconds. 
+- Even though the inter-observation times are mostly between 10 to 15 minutes, the differences in the time of day between observations are much closer. We store this value as **epsTime** for use later.
+
+## Application 
+- Define python function to implement HDBSCAN, using [Python's sklearn HDBSCAN algorithm](https://hdbscan.readthedocs.io/en/latest/basic_hdbscan.html) [@mcinnes_hdbscan_nodate]
+- Spatial cluster using the haversine distance 
+- Temporal cluster with a pre-computed time distance matrix.
+
+### Python Function
+```{python HDBfunc, eval=FALSE}
+# Imports
+import numpy as np
+import pandas as pd
+import hdbscan
+
+# Functions
+def runHDB(points,minClusterSize,epsDist,minSampleSize=None,distMatrix=None,verbose=False):
+
+    # Organize parameters
+    if minSampleSize is None:
+        minSampleSize = minClusterSize # restore default
+
+    # Define cluster object
+    if distMatrix is not None:
+        clusterFinder = hdbscan.HDBSCAN(min_cluster_size=int(minClusterSize),
+                                        min_samples=int(minSampleSize),
+                                        metric="precomputed",
+                                        cluster_selection_epsilon=epsDist,
+                                        cluster_selection_method="eom")
+        X = distMatrix
+
+    else:
+        clusterFinder = hdbscan.HDBSCAN(min_cluster_size=int(minClusterSize),
+                                        min_samples=int(minSampleSize),
+                                        metric="haversine",
+                                        cluster_selection_epsilon=(epsDist/1000)/6371,
+                                        cluster_selection_method="eom")
+        X = np.radians(points)
+    if verbose:
+        print("Running HDBSCAN on {} observations".format(len(X)))
+
+    res = clusterFinder.fit(X)
+    y = res.labels_
+    if verbose:
+        print("Found {} clusters".format(pd.Series(y).max() + 1))
+
+    return y + 1
+```
+
+### Cluster Workflow
+- Apply HDBSCAN with the data-informed parameters for $cluster\_selection\_epsilon$ to find spatial clusters, then again on each spatial clusters to find temporal limits to those clusters. 
+- We use the minimum allowable cluster size of 2 to minimize how "smooth" the cluster density estimate is between nearby points. 
+    - Mitigates HDBSCAN's tendency to identify overlapping clusters [@noauthor_outlier_nodate]. 
+- Use a high minimum sample size to discriminate noisy points from cluster boundary points. 
+- This method for using minimum cluster size and minimum sample size is discussed in greater detail [here](https://github.com/scikit-learn-contrib/hdbscan/issues/116) [@noauthor_outlier_nodate].
+
+
+```{r initial_clusterWorkflow, eval=FALSE, fig.cap=""}
+
+# Cluster spatially
+Y <- runHDB(points=dt[,c("lon","lat")],
+            minClusterSize=2,
+            minSampleSize=100,
+            epsDist=epsSpat)
+dt[,"spatClus" := Y]
+
+# Cluster temporally
+tempClus <- rep(0,m)
+for (i in unique(dt[spatClus != 0, spatClus])) {
+  
+  Y <- runHDB(points=NULL,
+              distMatrix=timeDistMat[dt$spatClus==i,dt$spatClus==i],
+              minClusterSize=2,
+              minSampleSize=100,
+              epsDist=epsTime)
+  
+  # label
+  tempClus[dt$spatClus==i] <- ifelse(Y!=0,paste0(i,".",Y),0)
+ 
+}
+
+# Set cluster column
+dt[,"clus" := tempClus]
+save(dt,file="products/dt.RData")
+```
+
+```{r initial_clusterWorkflow_quickLook,echo=FALSE,fig.cap=""}
+# Quick look
+load("products/dt.RData")
+dt[,.(`Obs Count`=.N),by=clus] %>% formattable(align="l") %>% 
+  formattable::as.datatable(rownames=FALSE,
+                            options=list(
+                              searching = FALSE,
+                              scrollX = TRUE,
+                              columnDefs = list(list(className = 'dt-left', targets = '_all')))) 
+
+```
+
+
+### Take aways:
+- Some clusters only include two observations, others have above 100 observations
+    - This is a result of HDBSCAN identifying clusters of varying densities. 
+- Next steps:
+    - Screen out clusters that do not include consecutive observations, as they are not temporally continuous 
+
+### Screening
+- Define the following R function to find the indices of the consecutive observations (values), and the lengths of each segment of consecutive observations (lengths), 
+- We use a modified version of the R function available [here](https://github.com/cran/cgwtools/blob/master/R/seqle.r) [@noauthor_crancgwtools_nodate].
+
+```{r consecCountFunc, fig.cap=""}
+
+# Function to find consecutive integers, and the length of each consecutive instance
+seqle <- function(x,incr=1) { 
+  if(!is.numeric(x)) x <- as.numeric(x) 
+  n <- length(x)  
+  y <- x[-1L] != x[-n] + incr 
+  i <- c(which(y|is.na(y)),n) 
+  temp <- list(lengths = diff(c(0L,i)),
+               values = x[head(c(0L,i)+1L,-1L)]) 
+  return(list(lengths=temp$lengths[temp$lengths > 1] - 1,
+              values=temp$values[temp$lengths > 1]))
+} 
+
+# Quick look
+seqle(which(dt$clus==1.1)) %>% as.data.table() %>% formattable(align="l") %>% as.htmlwidget()
+
+
+```
+
+### Take aways:
+- Table above is the result of our **seqle** function on one cluster
+- Values column indicates the index of the start of a consecutive segment of observations
+- Corresponding lengths column indicates the number of consecutive observations that begin at the value index
+- Cluster number **1.1** there are consecutive segments with over 70 observations
+- Next steps:
+    - Apply the **seqle** function to each cluster
+    - Filter out the segments consisting of only one observation (no evidence of loitering)
+    - Calculate the loiter time for each consecutive segment in each cluster
+    - Filter out the clusters where the wolf visited less than 10 times
+    - Filter out clusters where the wolf spent an average of less than 30 minutes
+    - Full code available [here](https://github.com/gsamudio7/Loiter-Inference-with-GPS-Data)
+
+```{r getLoiterFun, eval=FALSE, include=FALSE}
+
+
+# Execute the processing function with the data informed parameters
+resList <- dt %>% processResults(resVector=tempClus,
+                                 minLoiterTime=30*60, # 30 minutes
+                                 minVisCount=10,
+                                 clusterColumnName="clus")
+
+
+
+# Store the results
+processed_dt <- resList$frame
+loiterData <- resList$loiterDT
+save(processed_dt,loiterData,file="products/loiterData.RData")
+```
+
+```{r quickLookLoiterData, fig.cap="",include=FALSE}
+# View results
+load("products/loiterData.RData")
+loiterData %>% formattable(align="l") %>% as.htmlwidget()
+
+```
+
+Now that we have stored the results in our data and a list object, we can use this information to plot using leaflet. The functions available [here](https://github.com/gsamudio7/Loiter-Inference-with-GPS-Data) provide a comprehensive method to convey the results of our analysis. We omit the functions in this tutorial for brevity.
+
+
+# Results
+The map below conveys the results of clustering spatially and temporally using HDBSCAN. The loiter information for each cluster is shown when hovering over each cluster, and a radial heatmap of time of day by weekday is shown when clicking each cluster. We group the clusters by the time of day and include interactive toggles to allow the analyst to study the wolf's pattern of life.
+
+```{r plotRes, echo=FALSE, eval=FALSE}
+load("products/loiterData.RData")
+
+numGroups <- processed_dt[,uniqueN(group)]
+resultMap <- baseLeaf(groups2hide=c("Observations",processed_dt[,unique(group)] %>% 
+                                      sort() %>% 
+                                      tail(numGroups - 1) %>% as.character()),
+                      overGroups=c("Observations",processed_dt[,unique(group)] %>% sort() %>% as.character())) %>%
+  
+  plotHDBSCAN(frame=processed_dt[clus!="0",c("lon","lat","clus","group","Hour","Weekday")],
+              loiterData=loiterData,
+              colPal="Blues") %>%
+  
+  plotH3(pts=processed_dt[,c("lon","lat")],
+         h3Resolution=8,
+         groupName="Observations",
+         colPal="inferno",
+         reverseColorPalette=FALSE,
+         H3_labels=FALSE)
+
+save(resultMap, file="products/resultMap.RData")
+```
+
+```{r plotResultMap, echo=FALSE, fig.cap="",out.height=700}
+load("products/resultMap.RData")
+resultMap
+```
+
+# Conclusion
+- This tutorial demonstrates a method to extract actionable information from GPS data. 
+- A heatmap, or hexagon bin density map can provide initial intuition about the subject's most frequented locations, but more granular information is typically necessary. 
+- With spatial and temporal clustering, we can elicit reliable information about when, where, and for how long the subject (here, the wolf of interest) loiters.
+
+# Works Cited 
+

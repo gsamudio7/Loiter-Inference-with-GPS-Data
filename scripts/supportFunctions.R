@@ -14,16 +14,15 @@ baseLeaf <- function(
     leaflet() %>% 
       
       addProviderTiles(
-        #group="NGA Imagery",
+        group="NGA Imagery",
         provider=providers$Esri.WorldImagery,
         options=tileOptions(
           attribution=toString(tags$a(href = paste0(gitRepo),
                                       gitRepoTitle)))) %>%
       addProviderTiles(
         provider=providers$CartoDB.DarkMatter,
-        #group="NGA Slate",
+        group="NGA Slate",
         options=tileOptions(
-          opacity=0.5,
           attribution=toString(tags$a(href = paste0(gitRepo),
                                       gitRepoTitle)))) %>%
       addLogo(img=logoLocation,src=logoSource,
@@ -57,7 +56,7 @@ baseLeaf <- function(
         toggleDisplay = TRUE,
         position="bottomleft") %>%
       addLayersControl(
-      #   baseGroups = c("NGA Slate","NGA Imagery"),
+        baseGroups = c("NGA Slate","NGA Imagery"),
         overlayGroups = overGroups,
         options = layersControlOptions(collapsed = FALSE)) %>%
       hideGroup(groups2hide) %>%
@@ -107,112 +106,6 @@ baseLeaf <- function(
               
               </style>")
   )}
-
-# baseLeaf <- function(
-#   centerLat=55,
-#   centerLon=-105,
-#   initZoom=4,
-#   logoLocation="https://github.com/gsamudio7/Loiter-Inference-with-GPS-Data/blob/main/assets/images/NGATitle.png?raw=true",
-#   logoWidth=350,logoHeight=60,
-#   gitRepo="https://github.com/gsamudio7/Loiter-Inference-with-GPS-Data",
-#   gitRepoTitle="Loiter Inference with GPS Data",
-#   groups2hide=NULL,
-#   overGroups=NULL) {
-#   return(
-#     leaflet() %>% 
-#       addProviderTiles(
-#         group="NGA Imagery",
-#         provider=providers$Esri.WorldImagery,
-#         options=tileOptions(
-#           attribution=toString(tags$a(href = paste0(gitRepo),
-#                                       gitRepoTitle)))) %>%
-#       addProviderTiles(
-#         provider=providers$CartoDB.DarkMatter,
-#         group="NGA Slate",
-#         options=tileOptions(
-#           attribution=toString(tags$a(href = paste0(gitRepo),
-#                                       gitRepoTitle)))) %>%
-#       addLogo(img=logoLocation,
-#               width=logoWidth,height=logoHeight,url=gitRepo) %>%
-#       addEasyButton(
-#         easyButton(
-#           icon = "ion-arrow-shrink", 
-#           title = "Reset View", 
-#           onClick = JS(
-#             "function(btn, map){ map.setView(map._initialCenter, map._initialZoom); }"
-#           )
-#         )
-#       ) %>% 
-#       htmlwidgets::onRender(
-#         JS(
-#           "
-#           function(el, x){ 
-#             var map = this; 
-#             map.whenReady(function(){
-#               map._initialCenter = map.getCenter(); 
-#               map._initialZoom = map.getZoom();
-#             });
-#           }"
-#         )
-#       ) %>%
-#       addMouseCoordinates() %>%
-#       setView(lng=centerLon,lat=centerLat,zoom=initZoom) %>%
-#       addMiniMap(
-#         tiles='Esri.WorldImagery',
-#         zoomLevelOffset = -10,
-#         toggleDisplay = TRUE, 
-#         position="bottomleft") %>%
-#       addLayersControl(
-#         baseGroups = c("NGA Slate","NGA Imagery"),
-#         overlayGroups = overGroups,
-#         options = layersControlOptions(collapsed = FALSE)) %>%
-#       hideGroup(c("NGA Imagery",groups2hide)) %>%
-#       
-#       addControl(
-#         className=NULL,
-#         html=
-#           "<style>
-#               .leaflet-control-layers-expanded {
-#                   padding: 6px 10px 6px 6px;
-#                   color: #fff;
-#                   background: #333;
-#               }
-#               
-#               .info {
-#                 padding: 6px 8px;
-#                 font: 14px/16px Arial, Helvetica, sans-serif;
-#                 background: #333;
-#               }
-#               
-#               .legend svg text {
-#                 fill: #fff;
-#               }
-#               
-#               .legend {
-#                 color: #fff;
-#               }
-#               
-#               .legend svg line {
-#                 stroke: #fff;
-#               }
-#               
-#               .leaflet-bar a, .leaflet-bar a:hover {
-#                 background-color: #333;
-#                 border-bottom: 1px solid #ccc;
-#                 text-align: center;
-#                 text-decoration: none;
-#                 color: #fff;
-#               }
-#               
-#               .leaflet-bar button, .leaflet-bar button:hover {
-#                 background-color: #333;
-#                 text-align: center;
-#                 text-decoration: none;
-#                 color: #fff;
-#               }
-#               
-#               </style>")
-#   )}
 
 
 
@@ -355,20 +248,33 @@ military_time <- function(hour_integer) {
 }
 
 
-activity_heat <- function(fr) {
-  fr$Hour <- fr$Hour %>% Vectorize(military_time)() %>% factor(levels=Vectorize(military_time)(1:24))
-  countDT <- fr[,.(Activity=.N),by=c("Hour","Weekday")]
-  ggplot(fr,aes(x=Hour,y=Weekday)) + 
+activity_heat <- function(fr,dark=TRUE) {
+  frame <- rbindlist(list(fr,
+                     data.table("Hour"=rep(levels(fr$Hour),times=length(levels(fr$Weekday))),
+                            "Weekday"=rep(levels(fr$Weekday),each=length(levels(fr$Hour))))),
+                     fill=TRUE)
+  countDT <- frame[,.(Activity=.N),by=c("Hour","Weekday")] %>% na.omit()
+  chart <- ggplot(countDT,aes(x=Hour,y=Weekday)) + 
     geom_tile(data=countDT,aes(fill=Activity)) +
-    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1,color="#FFFFFF"),
-          axis.text.y = element_text(color="#FFFFFF"),
-          axis.title = element_text(color="#FFFFFF"),
-          plot.background = element_rect(fill = "#333333"),
-          panel.background = element_rect(fill = "#333333"),
-          legend.background = element_rect(fill = "#333333"),
-          legend.text = element_text(color="#FFFFFF"),
-          legend.title = element_text(color="#FFFFFF"))
+    coord_polar(theta = "x",clip="off",start=-pi/24,direction=1) 
+  if (dark==TRUE) {
+    return(chart +
+           theme(axis.text.x = element_text(color="#FFFFFF"),
+                 axis.text.y = element_text(color="#FFFFFF"),
+                 axis.title = element_text(color="#FFFFFF"),
+                 axis.line = element_blank(),
+                 panel.grid.major = element_blank(),
+                 plot.background = element_rect(fill = "#333333"),
+                 panel.background = element_blank(),
+                 legend.background = element_rect(fill = "#333333"),
+                 legend.text = element_text(color="#FFFFFF"),
+                 legend.title = element_text(color="#FFFFFF")))} else {
+                   return(chart +
+                          theme(axis.line = element_blank(),
+                                axis.ticks = element_blank(),
+                                panel.grid.major = element_blank()))}
 }
+
 
 
 plotHDBSCAN <- function(map,frame,loiterData,colPal) {

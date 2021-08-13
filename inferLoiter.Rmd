@@ -7,7 +7,6 @@ output:
     includes:
       before_body: assets/header.html
       in_header: assets/fav.html
-      after_body: assets/header.html
     css: assets/css/html_report.css
     highlight: haddock
     self_contained: yes
@@ -29,7 +28,7 @@ bibliography:
 
 #TOC {
   margin-top: 40px;
-  background: url("https://github.com/gsamudio7/Loiter-Inference-with-GPS-Data/blob/main/assets/images/logo800.png?raw=true");
+  background: url("https://github.com/gsamudio7/Loiter-Inference-with-GPS-Data/blob/main/assets/images/skope.jpeg?raw=true");
   background-size: contain;
   padding-top: 110px !important;
   background-repeat: no-repeat;
@@ -39,7 +38,6 @@ bibliography:
 
 </style>
 
-<br>
 
 
 ```{r setUp, include=FALSE}

@@ -95,7 +95,7 @@ initMap
 
 # Read in processed data
 load("products/loiterData.RData")
-
+processed_dt$Hour <- processed_dt$Hour %>% Vectorize(military_time)() %>% factor(levels=Vectorize(military_time)(0:23))
 resultMap <- baseLeaf(pts=processed_dt[,c("lon","lat")],
                       initZoom = 9,
                       miniMapOffset=-8,
@@ -125,7 +125,62 @@ load("products/resultMap.RData")
 # Save as html
 htmlwidgets::saveWidget(resultMap,file="products/resultMap.html")
 
+# Plots ####
+# # Generate a column of date objects 
+dt_init[,"date" := lubridate::date(dtg)]
+# 
+# # Accumulate the observation counts for each day
+dayCount <- dt_init[,.(count=.N),by=date]
+# 
+# # Plot
+daily_volume <- plot_ly(x=dayCount[,date],
+        y=dayCount[,count],
+        type="scatter",mode="markers",
+        marker=list(color="#2359c4",size=5,opacity=0.65)) %>%
+  layout(title="<b>Daily Activity from\n18MAR12 to 18MAY14\n",
+         xaxis = list(title="Month"),
+         yaxis = list(title="Average Activity")) %>% plotly_build()
+save(daily_volume,file="products/daily_volume.RData")
 
+# dt_init$Hour <- dt_init$Hour %>% Vectorize(military_time)() %>% factor(levels=Vectorize(military_time)(1:24))
+# 
+# # Plot
+# weekday_and_hour_volume <- plot_ly(dt_init, x = ~Hour, y = ~Weekday,
+#         colors=c("gray15","#990000"),
+#         name=" ",
+#         hovertemplate = paste('<b>Weekday: </b>%{y}',
+#                               '<br><b>Hour: </b>%{x}',
+#                               '<br><b>Count:</b> %{z}')) %>%
+#   layout(title = "<b>Activity Count by Hour and Weekday</b>") %>% add_histogram2d() %>% plotly_build()
+# save(weekday_and_hour_volume, file="products/weekday_and_hour_volume.RData")
+
+weekday_and_hour_volume <- activity_heat(dt_init,dark=FALSE)
+save(weekday_and_hour_volume,file="products/weekday_and_hour_volume.RData")
+
+# # Create a vector of densities
+qt.95 <- dt_init[,timeInt/60] %>% na.omit() %>% quantile(.95) %>% round()
+dens <- density(dt_init[,timeInt/60] %>% na.omit() %>% as.double() %>% log())
+
+# Plot
+inter_obs_time <- plot_ly(x=~dens$x,
+                          y=~dens$y,
+                          type = "scatter",
+                          mode="lines",
+                          color=I("#2359c4")) %>%
+  layout(
+    yaxis = list(title="Density"),
+    xaxis = list(title="Inter-observation Time (minutes)",
+                 tickvals = c(2.335666,2.707814,5.2,seq(0,7,2)),
+                 ticktext = c(2.335666,2.707814,5.2,seq(0,7,2)) %>% exp() %>% round()),
+    title = "<b>Inter-Observation Time</b><br>",
+    shapes = list(type ="line",
+                  line = list(color="black"),
+                  x0 = log(qt.95), x1 = log(qt.95),
+                  y0 = 0, y1 = 70),
+    annotations = list(text = paste("<b>.95 Quantile: </b>",round(qt.95,2),"minutes"),
+                       x = log(qt.95) + 1, y = 72, showarrow=FALSE)) %>% plotly_build()
+
+save(inter_obs_time,file="products/inter_obs_time.RData")
 
 
 
