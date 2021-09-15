@@ -29,9 +29,9 @@ bibliography:
 
 #TOC {
   margin-top: 40px;
-  background: url("https://raw.githubusercontent.com/gsamudio7/Loiter-Inference-with-GPS-Data/d46612560b6e840585bee3e2498c74845256e7ae/assets/images/skopeLogo.svg");
+  background-image: url(assets/images/skopeLogo.svg);
   background-size: contain;
-  padding-top: 110px !important;
+  padding-top: 90px !important;
   background-repeat: no-repeat;
   border: None;
   width: 1;
