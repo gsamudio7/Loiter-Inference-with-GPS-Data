@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "locale": "en_US",
+  "platform": "4.1.3",
+  "metadata": {
+    "appmode": "static",
+    "primary_rmd": null,
+    "primary_html": "inferLoiterBrief.html",
+    "content_category": null,
+    "has_parameters": false
+  },
+  "packages": null,
+  "files": {
+    "inferLoiterBrief.html": {
+      "checksum": "ce9237ca362b85ab9bd85c4a516f89bc"
+    }
+  },
+  "users": null
+}
